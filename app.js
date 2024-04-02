@@ -24,9 +24,9 @@ const initialize = (passport) => {
         };
 
         client.query(userQuery, (err, result) => {
-            if (err) {
-                return done(null, false, { message: "Database error." });
-            } else {
+            if (err) return done(null, false, { message: "Database error." });
+            else if (result.rowCount == 0) return done(null, false, { message: "Invalid username or password." });    
+            else {
                 if (hashPassword(password) === result.rows[0].password) return done(null, result.rows[0]);
                 else return done (null, false, { message: "Invalid username or password."} );
             }
@@ -42,19 +42,32 @@ const initialize = (passport) => {
 
     passport.serializeUser((user, done) => done(null, user.username));
     passport.deserializeUser((id, done) => {
-        const dataQuery = {
+        const userQuery = {
             text: "SELECT * FROM users WHERE username = $1",
             values: [id]
         }
 
-        client.query(dataQuery, (err, result) => {
-            // console.log(result.rows);
-            if (err) {
-                console.log(err);
-            } else {
-                return done(null, result.rows[0]);
-            }
+        // retrieve user data
+        client.query(userQuery, (err, result) => {
+            if (err) console.log(err);
+            let data = result.rows[0];
+            // if member, retrieve fitness goal data
+            if (data.accounttype) {
+                const fitnessGoalsQuery = {
+                    text: "SELECT * FROM fitnessGoals WHERE username = $1",
+                    values: [id]
+                }
+                // retrieve fitness goal data
+                client.query(fitnessGoalsQuery, (err, result) => {
+                    if (err) console.log(err);
+                    data.fitnessGoals = result.rows[0];
+
+                    return done(null, data);
+                })
+            } else return done(null, data);    
         });
+        
+        
     });
 }
 
@@ -86,14 +99,14 @@ app.get("/a", (req, res) => {
     if (req.isAuthenticated()){
         res.send("Hello World");
     } else {
-        res.redirect("/signin");
+        res.redirect("/signin",);
     }
     
 });
 
 app.get("/dashboard", (req, res) => {
     if (req.isAuthenticated()){
-        res.render("dashboard.ejs", {username: req.user.username, accountType: req.user.accountType});
+        res.render("dashboard.ejs", {username: req.user.username, accountType: req.user.accounttype, fitnessGoals: req.user.fitnessGoals});
     } else {
         res.redirect("/signin");
     }
@@ -108,8 +121,10 @@ app.get("/signin", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-    req.logout();
-    res.redirect("/a");
+    req.logout((err) => {
+        if (err) console.log(err);
+        res.redirect("/signin");
+    });
 })
 
 app.get("/test", passport.authenticate('local', { successRedirect: '/a', failureRedirect: '/signup', failureFlash: true}));
@@ -138,12 +153,23 @@ app.post("/signup", (req, res) => {
                 if (exists) {
                     res.render("signup", {errorMessage: "Username already exists."})
                 } else {
+                    // create new user
                     const createUserQuery = {
                         text: 'INSERT INTO users (username, password, accountType) VALUES ($1, $2, $3)',
                         values: [username, password, accountType]
                     };
                     
                     client.query(createUserQuery);
+
+                    // create base fitness goals
+                    if (accountType === "Member") {
+                        const fitnessGoalsQuery = {
+                            text: 'INSERT INTO fitnessGoals (username) VALUES ($1)',
+                            values: [username]
+                        }
+
+                        client.query(fitnessGoalsQuery);
+                    }
                     
                     passport.authenticate("local")(req, res, ()=>{
                         res.redirect("/dashboard"); 
