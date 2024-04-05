@@ -182,4 +182,58 @@ app.post("/signup", (req, res) => {
 
 app.post("/signin", passport.authenticate('local', { successRedirect: '/dashboard', failureRedirect: '/signin', failureFlash: true}));
 
+// update weight values
+app.post("/editWeight", (req, res) => {
+    const currentWeight = req.body.currentWeight;
+    const goalWeight = req.body.goalWeight;
+    const username = req.body.username;
+
+    const updateQuery = {
+        text: 'UPDATE fitnessGoals SET currentWeight = $1, goalWeight = $2 WHERE username = $3',
+        values: [currentWeight, goalWeight, username]
+    }
+
+    client.query(updateQuery);
+
+    res.redirect("/dashboard");
+});
+
+// update steps values
+app.post("/editSteps", (req, res) => {
+    const currentSteps = req.body.currentSteps;
+    const goalSteps = req.body.goalSteps;
+    const username = req.body.username;
+
+    const updateQuery = {
+        text: 'UPDATE fitnessGoals SET currentSteps = $1, goalSteps = $2 WHERE username = $3',
+        values: [currentSteps, goalSteps, username]
+    }
+
+    client.query(updateQuery);
+
+    res.redirect("/dashboard");
+});
+
+app.post("/editCalories", (req, res) => {
+    const currentCalories = req.body.currentCalories;
+    const goalCalories = req.body.goalCalories;
+    const username = req.body.username;
+
+    const updateQuery = {
+        text: 'UPDATE fitnessGoals SET currentCalories = $1, goalCalories = $2 WHERE username = $3',
+        values: [currentCalories, goalCalories, username]
+    }
+
+    client.query(updateQuery, (err, result) => {
+        if (err) {
+            console.error('Error updating calories:', err);
+            // Handle the error, perhaps by sending an error response
+            res.status(500).send('Error updating calories');
+        } else {
+            // Redirect to the dashboard after successfully updating
+            res.redirect("/dashboard");
+        }
+    });
+});
+
 app.listen(process.env.PORT || 3000);
