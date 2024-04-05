@@ -1,144 +1,72 @@
 const username = document.getElementById("username").getAttribute("data-value");
+// user information tags
+const accountInfoEditButton = document.getElementById("account-info-edit");
+const accountInfoSubmitButton = document.getElementById("account-info-submit");
+const accountInfoError = document.getElementById("account-info-error");
+const firstNameValue = document.getElementById("first-name-value");
+const firstNameInput = document.getElementById("first-name-input");
+const lastNameValue = document.getElementById("last-name-value");
+const lastNameInput = document.getElementById("last-name-input");
+const oldPasswordBlock = document.getElementById("old-password");
+const newPasswordBlock = document.getElementById("new-password");
+const oldPasswordInput = document.getElementById("old-password-input");
+const newPasswordInput = document.getElementById("new-password-input");
+const changePassword = document.getElementById("change-password");
 
-document.addEventListener("DOMContentLoaded", () => {
-  // weight tags
-  const weightEditButton = document.getElementById("weight-metric-edit");
-  const currentWeightValueSpan = document.getElementById("weight-metric-current-value");
-  const currentWeightInput = document.getElementById("weight-metric-current-input");
-  const goalWeightValueSpan = document.getElementById("weight-metric-goal-value");
-  const goalWeightInput = document.getElementById("weight-metric-goal-input");
-  const weightSubmitButton = document.getElementById("weight-metric-submit");
-  const weightError = document.getElementById("weight-metric-error");
+// toggle user information tags
+accountInfoEditButton.addEventListener("click", () => {
+  if (firstNameValue.style.display !== "none") {
+    firstNameValue.style.display = "none";
+    firstNameInput.style.display = "inline";
+    lastNameValue.style.display = "none";
+    lastNameInput.style.display = "inline";
+    accountInfoSubmitButton.style.display = "inline";
+    accountInfoError.style.display = "none";
+    oldPasswordBlock.style.display = "inline";
+    newPasswordBlock.style.display = "inline";
+  } else {
+    firstNameValue.style.display = "inline";
+    firstNameInput.style.display = "none";
+    lastNameValue.style.display = "inline";
+    lastNameInput.style.display = "none";
+    accountInfoSubmitButton.style.display = "none";
+    accountInfoError.style.display = "none";
+    oldPasswordBlock.style.display = "none";
+    newPasswordBlock.style.display = "none";
+  }
+});
 
-  // steps tags
-  const stepEditButton = document.getElementById("steps-metric-edit");
-  const currentStepValueSpan = document.getElementById("steps-metric-current-value");
-  const currentStepInput = document.getElementById("steps-metric-current-input");
-  const goalStepValueSpan = document.getElementById("steps-metric-goal-value");
-  const goalStepInput = document.getElementById("steps-metric-goal-input");
-  const stepSubmitButton = document.getElementById("steps-metric-submit");
-  const stepError = document.getElementById("steps-metric-error");
+// post request for user information updated data
+accountInfoSubmitButton.addEventListener("click", () => {
+  const firstName = firstNameInput.value.trim();
+  const lastName = lastNameInput.value.trim();
+  const oldPassword = oldPasswordInput.value.trim();
+  const newPassword = newPasswordInput.value.trim();
+  const changePasswordOption = changePassword.checked;
 
-  // calorie tags
-  const calorieEditButton = document.getElementById("calories-metric-edit");
-  const currentCalorieValueSpan = document.getElementById("calories-metric-current-value");
-  const currentCalorieInput = document.getElementById("calories-metric-current-input");
-  const goalCalorieValueSpan = document.getElementById("calories-metric-goal-value");
-  const goalCalorieInput = document.getElementById("calories-metric-goal-input");
-  const calorieSubmitButton = document.getElementById("calories-metric-submit");
-  const calorieError = document.getElementById("calories-metric-error");
-
-  // toggle weight tags
-  weightEditButton.addEventListener("click", () => {
-    if (currentWeightValueSpan.style.display !== "none") {
-      currentWeightValueSpan.style.display = "none";
-      currentWeightInput.style.display = "inline";
-      goalWeightValueSpan.style.display = "none";
-      goalWeightInput.style.display = "inline";
-      weightSubmitButton.style.display = "inline";
-    } else {
-      currentWeightValueSpan.style.display = "inline";
-      currentWeightInput.style.display = "none";
-      goalWeightValueSpan.style.display = "inline";
-      goalWeightInput.style.display = "none";
-      weightSubmitButton.style.display = "none";
-      weightError.style.display = "none";
-    }
-  });
-
-  // toggle step tags
-  stepEditButton.addEventListener("click", () => {
-    if (currentStepValueSpan.style.display !== "none") {
-      currentStepValueSpan.style.display = "none";
-      currentStepInput.style.display = "inline";
-      goalStepValueSpan.style.display = "none";
-      goalStepInput.style.display = "inline";
-      stepSubmitButton.style.display = "inline";
-    } else {
-      currentStepValueSpan.style.display = "inline";
-      currentStepInput.style.display = "none";
-      goalStepValueSpan.style.display = "inline";
-      goalStepInput.style.display = "none";
-      stepSubmitButton.style.display = "none";
-      stepError.style.display = "none";
-    }
-  });
-
-  // toggle calories tags
-  calorieEditButton.addEventListener("click", () => {
-    if (currentCalorieValueSpan.style.display !== "none") {
-      currentCalorieValueSpan.style.display = "none";
-      currentCalorieInput.style.display = "inline";
-      goalCalorieValueSpan.style.display = "none";
-      goalCalorieInput.style.display = "inline";
-      calorieSubmitButton.style.display = "inline";
-    } else {
-      currentCalorieValueSpan.style.display = "inline";
-      currentCalorieInput.style.display = "none";
-      goalCalorieValueSpan.style.display = "inline";
-      goalCalorieInput.style.display = "none";
-      calorieSubmitButton.style.display = "none";
-      calorieError.style.display = "none";
-    }
-  });
-
-  // post request for weight updated data
-  weightSubmitButton.addEventListener("click", () => {
-    const currentWeight = parseFloat(currentWeightInput.value).toFixed(2);
-    const goalWeight = parseFloat(goalWeightInput.value).toFixed(2);
-
-    if (currentWeight > 0 && currentWeight < 500 && goalWeight > 0 && goalWeight < 500) {
-      fetch("/editWeight", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ currentWeight: currentWeight, goalWeight: goalWeight, username: username }),
-      }).then((response) => {
+  if (!/^[A-Za-z]+$/.test(firstName) || !/^[A-Za-z]+$/.test(lastName)) {
+    accountInfoError.textContent = "First name and last name must be characters only.";
+    accountInfoError.style.display = "inline";
+  } else if (changePasswordOption && newPassword.length === 0) {
+    accountInfoError.textContent = "New password cannot be empty.";
+    accountInfoError.style.display = "inline";
+  } else if (changePasswordOption && newPassword === oldPassword) {
+    accountInfoError.textContent = "Both passwords are the same.";
+    accountInfoError.style.display = "inline";
+  } else {
+    fetch("/updateUserInfo", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username: username, firstName: firstName, lastName: lastName, oldPassword: oldPassword, newPassword: newPassword, updatePassword: changePasswordOption }),
+    }).then((response) => {
+      if (response.status === 304) {
+        accountInfoError.textContent = "Old password does not match.";
+        accountInfoError.style.display = "inline";
+      } else {
         window.location.reload();
-      });
-    } else {
-      weightError.style.display = "block";
-    }
-  });
-
-  // post request for update steps data
-  stepSubmitButton.addEventListener("click", () => {
-    const currentSteps = parseInt(currentStepInput.value);
-    const goalSteps = parseInt(goalStepInput.value);
-
-    if (currentSteps > 0 && currentSteps < 100000 && goalSteps > 0 && goalSteps < 100000) {
-      fetch("/editSteps", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ currentSteps: currentSteps, goalSteps: goalSteps, username: username }),
-      }).then((response) => {
-        window.location.reload();
-      });
-    } else {
-      stepError.style.display = "block";
-    }
-  });
-
-  // post request for calorie updated data
-  calorieSubmitButton.addEventListener("click", () => {
-    const currentCalories = parseInt(currentCalorieInput.value);
-    const goalCalories = parseInt(goalCalorieInput.value);
-
-    if (currentCalories > 0 && currentCalories < 100000 && goalCalories > 0 && goalCalories < 100000) {
-      fetch("/editCalories", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ currentCalories: currentCalories, goalCalories: goalCalories, username: username }),
-      }).then((response) => {
-        window.location.reload();
-      });
-    } else {
-      calorieError.style.display = "block";
-    }
-  });
+      }
+    });
+  }
 });

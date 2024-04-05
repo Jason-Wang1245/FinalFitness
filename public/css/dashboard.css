@@ -1,10 +1,14 @@
+.content-box {
+    margin: 1rem;
+}
+
 .health-metric-item {
     width: auto;
     margin-top: 1rem;
     margin-bottom: 1rem;
 }
 
-.health-metric-item-edit-button {
+.edit-button {
     position: absolute;
     right: 1rem;
     background: none;
@@ -13,8 +17,23 @@
     margin: 0;
 }
 
-.health-metric-edit-input{
+.health-metric-edit-input {
     width: 5rem; 
+    position: relative;
+    display: none;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out
+}
+
+.account-info-edit-input {
+    width: 10rem; 
     position: relative;
     display: none;
     font-size: 1rem;
@@ -33,6 +52,10 @@
     display: none;
 }
 
-.error-message{
+.account-info-edit-submit{
+    margin-top: 1rem;
+}
+
+.hidden {
     display: none;
 }
