@@ -84,21 +84,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
 
-// client.query(`SELECT * FROM students`, (err, result) => {
-//     if (!err){
-//         data = res.rows;
-//     } else {
-//         console.log(err.message);
-//     }
-// })
-
-app.get("/a", (req, res) => {
-  if (req.isAuthenticated()) {
-    res.send("Hello World");
-  } else {
-    res.redirect("/signin");
-  }
-});
+app.get("/", (req, res) => {
+    res.render("homepage.ejs", { authentication: req.isAuthenticated() });
+})
 
 app.get("/dashboard", (req, res) => {
   if (req.isAuthenticated()) {
@@ -119,7 +107,7 @@ app.get("/signin", (req, res) => {
 app.post("/logout", (req, res) => {
   req.logout((err) => {
     if (err) console.log(err);
-    res.redirect("/signin");
+    res.redirect("/");
   });
 });
 
