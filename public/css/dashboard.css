@@ -66,3 +66,18 @@ body {
 .hidden {
     display: none;
 }
+
+.form-control.no-border:focus {
+    box-shadow: none;
+    border-color: transparent;
+}
+
+
+.btn:focus {
+    box-shadow: none;
+}
+
+.fitness-goal-check{
+    margin-left: -0.5rem;
+    margin-right: 0.5rem;
+}

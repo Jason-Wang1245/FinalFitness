@@ -8,20 +8,67 @@
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <!-- navigation between different tabs -->
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <!-- <li class="nav-item">
-            <a class="nav-link" href="/homepage">Fitness Goals</a>
+          <li class="nav-item">
+            <a class="nav-link" href="/dashboard">Dashboard</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="/calendar">Calendar</a>
+            <a class="nav-link" href="/appointments">Appointments</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/teamlist">Team List</a>
-          </li> -->
         </ul>
+
+        <button type="button" class="btn edit-button" data-bs-toggle="modal" data-bs-target="#editProfile" style="margin-right: 5.5rem">
+          <img src="images/profile.png" />
+        </button>
         <form method="post" action="/logout" class="d-flex">
           <button class="btn btn-danger" type="submit" style="border-radius: 20px">Logout</button>
         </form>
       </div>
     </div>
   </nav>
+
+  <div class="modal fade" id="editProfile" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="editProfileTitle">My Profile</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="card" style="border: 2px solid rgba(0, 0, 0, 0);">
+          <div class="card-body">
+            <button id="account-info-edit" class="edit-button"><img src="images/edit.png" alt="edit.png" /></button>
+            <h2 class="card-title">Account Information</h2>
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item">
+                Username:
+                <span id="username-value"><%=username%></span>
+              </li>
+              <li class="list-group-item">
+                First Name:
+                <span id="first-name-value"><%=firstName%></span>
+                <input id="first-name-input" class="account-info-edit-input" type="text" value="<%=firstName%>" />
+              </li>
+              <li class="list-group-item">
+                Last Name:
+                <span id="last-name-value"><%=lastName%></span>
+                <input id="last-name-input" class="account-info-edit-input" type="text" value="<%=lastName%>" />
+              </li>
+              <li id="old-password" class="list-group-item hidden">
+                Old Password:
+                <input id="old-password-input" class="account-info-edit-input" type="password" style="display: inline" />
+              </li>
+              <li id="new-password" class="list-group-item hidden">
+                Change to New Password:
+                <input id="change-password" type="checkbox" />
+                <input id="new-password-input" class="account-info-edit-input" type="password" style="display: inline" />
+              </li>
+              <li class="list-group-item">Account Type: <%=accountType%></li>
+            </ul>
+            <div><p id="account-info-error" class="text-danger hidden"></p></div>
+            <div><button id="account-info-submit" type="button" class="btn btn-success btn-sm account-info-edit-submit hidden">Submit</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </header>

@@ -13,47 +13,12 @@
     </div>
     <%- include('partials/header') %>
 
+    <h1 class="text-center" style="margin-top: 1rem">Welcome, <%=firstName%> <%=lastName%></h1>
+
     <div class="content-box">
       <div class="row">
-        <div class="col-sm-3">
-          <div class="card">
-            <div class="card-body">
-              <button id="account-info-edit" class="edit-button"><img src="images/edit.png" alt="edit.png" /></button>
-              <h2 class="card-title">Account Information</h2>
-              <ul class="list-group list-group-flush">
-                <li class="list-group-item">
-                  Username:
-                  <span id="username-value"><%=username%></span>
-                </li>
-                <li class="list-group-item">
-                  First Name:
-                  <span id="first-name-value"><%=firstName%></span>
-                  <input id="first-name-input" class="account-info-edit-input" type="text" value="<%=firstName%>" />
-                </li>
-                <li class="list-group-item">
-                  Last Name:
-                  <span id="last-name-value"><%=lastName%></span>
-                  <input id="last-name-input" class="account-info-edit-input" type="text" value="<%=lastName%>" />
-                </li>
-                <li id="old-password" class="list-group-item hidden">
-                  Old Password:
-                  <input id="old-password-input" class="account-info-edit-input" type="password" style="display: inline" />
-                </li>
-                <li id="new-password" class="list-group-item hidden">
-                  Change to New Password:
-                  <input id="change-password" type="checkbox" />
-                  <input id="new-password-input" class="account-info-edit-input" type="password" style="display: inline" />
-                </li>
-                <li class="list-group-item">Account Type: <%=accountType%></li>
-              </ul>
-              <div><p id="account-info-error" class="text-danger hidden"></p></div>
-              <div><button id="account-info-submit" type="button" class="btn btn-success btn-sm account-info-edit-submit hidden">Submit</button></div>
-            </div>
-          </div>
-        </div>
-
         <% if (accountType === "Member"){ %>
-        <div class="col-sm-3 mb-3 mb-sm-0">
+        <div class="col-sm-4 mb-3 mb-sm-0">
           <div class="card">
             <div class="card-body">
               <h2 class="card-title">Health Metrics</h2>
@@ -62,17 +27,17 @@
                 <div class="card-body">
                   <button id="weight-metric-edit" class="edit-button"><img src="images/edit.png" alt="edit.png" /></button>
                   <h5 class="card-title">Weight</h5>
-                  <h6 class="card-subtitle mb-2 text-body-secondary">Goal: <%= (fitnessGoals.currentweight > fitnessGoals.goalweight) ? "Lose Weight" : "Gain Weight" %></h6>
+                  <h6 class="card-subtitle mb-2 text-body-secondary">Goal: <%= (healthMetrics.currentweight > healthMetrics.goalweight) ? "Lose Weight" : "Gain Weight" %></h6>
                   <p class="card-text">
-                    <input id="weight-metric-current-input" class="health-metric-edit-input" type="number" value="<%= fitnessGoals.currentweight %>" />
-                    <span id="weight-metric-current-value"><%= fitnessGoals.currentweight %></span>LB /
-                    <input id="weight-metric-goal-input" class="health-metric-edit-input" type="number" value="<%= fitnessGoals.goalweight %>" />
-                    <span id="weight-metric-goal-value"><%= fitnessGoals.goalweight %></span>LB
+                    <input id="weight-metric-current-input" class="health-metric-edit-input" type="number" value="<%= healthMetrics.currentweight %>" />
+                    <span id="weight-metric-current-value"><%= healthMetrics.currentweight %></span>LB /
+                    <input id="weight-metric-goal-input" class="health-metric-edit-input" type="number" value="<%= healthMetrics.goalweight %>" />
+                    <span id="weight-metric-goal-value"><%= healthMetrics.goalweight %></span>LB
                   </p>
                   <p id="weight-metric-error" class="text-danger hidden">Please enter values between 0LB and 500LB.</p>
                   <button id="weight-metric-submit" type="button" class="btn btn-success btn-sm health-metric-edit-submit">Submit</button>
                   <div class="progress" role="progressbar" aria-label="Basic example" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
-                    <div class="progress-bar" style="width: <%= (fitnessGoals.currentweight < fitnessGoals.goalweight) ? (fitnessGoals.currentweight / fitnessGoals.goalweight * 100) : (fitnessGoals.goalweight / fitnessGoals.currentweight * 100) %>%"></div>
+                    <div class="progress-bar" style="width: <%= (healthMetrics.currentweight < healthMetrics.goalweight) ? (healthMetrics.currentweight / healthMetrics.goalweight * 100) : (healthMetrics.goalweight / healthMetrics.currentweight * 100) %>%"></div>
                   </div>
                 </div>
               </div>
@@ -82,15 +47,15 @@
                   <button id="steps-metric-edit" class="edit-button"><img src="images/edit.png" alt="edit.png" /></button>
                   <h5 class="card-title">Steps</h5>
                   <p class="card-text">
-                    <input id="steps-metric-current-input" class="health-metric-edit-input" type="number" value="<%= fitnessGoals.currentsteps %>" />
-                    <span id="steps-metric-current-value"><%= fitnessGoals.currentsteps %></span> Steps /
-                    <input id="steps-metric-goal-input" class="health-metric-edit-input" type="number" value="<%= fitnessGoals.goalsteps %>" />
-                    <span id="steps-metric-goal-value"><%= fitnessGoals.goalsteps %></span> Steps
+                    <input id="steps-metric-current-input" class="health-metric-edit-input" type="number" value="<%= healthMetrics.currentsteps %>" />
+                    <span id="steps-metric-current-value"><%= healthMetrics.currentsteps %></span> Steps /
+                    <input id="steps-metric-goal-input" class="health-metric-edit-input" type="number" value="<%= healthMetrics.goalsteps %>" />
+                    <span id="steps-metric-goal-value"><%= healthMetrics.goalsteps %></span> Steps
                   </p>
                   <p id="steps-metric-error" class="text-danger hidden">Please enter a values between 0 and 100,000.</p>
                   <button id="steps-metric-submit" type="button" class="btn btn-success btn-sm health-metric-edit-submit">Submit</button>
                   <div class="progress" role="progressbar" aria-label="Basic example" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
-                    <div class="progress-bar" style="width: <%= fitnessGoals.currentsteps / fitnessGoals.goalsteps * 100 %>%"></div>
+                    <div class="progress-bar" style="width: <%= healthMetrics.currentsteps / healthMetrics.goalsteps * 100 %>%"></div>
                   </div>
                 </div>
               </div>
@@ -100,26 +65,112 @@
                   <button id="calories-metric-edit" class="edit-button"><img src="images/edit.png" alt="edit.png" /></button>
                   <h5 class="card-title">Calorie Consumption</h5>
                   <p class="card-text">
-                    <input id="calories-metric-current-input" class="health-metric-edit-input" type="number" value="<%= fitnessGoals.currentcalories %>" />
-                    <span id="calories-metric-current-value"><%= fitnessGoals.currentcalories %></span> Calories /
-                    <input id="calories-metric-goal-input" class="health-metric-edit-input" type="number" value="<%= fitnessGoals.goalcalories %>" />
-                    <span id="calories-metric-goal-value"><%= fitnessGoals.goalcalories %></span> Calories
+                    <input id="calories-metric-current-input" class="health-metric-edit-input" type="number" value="<%= healthMetrics.currentcalories %>" />
+                    <span id="calories-metric-current-value"><%= healthMetrics.currentcalories %></span> Calories /
+                    <input id="calories-metric-goal-input" class="health-metric-edit-input" type="number" value="<%= healthMetrics.goalcalories %>" />
+                    <span id="calories-metric-goal-value"><%= healthMetrics.goalcalories %></span> Calories
                   </p>
                   <p id="calories-metric-error" class="text-danger hidden">Please enter a values between 0 and 100,000.</p>
                   <button id="calories-metric-submit" type="button" class="btn btn-success btn-sm health-metric-edit-submit">Submit</button>
                   <div class="progress" role="progressbar" aria-label="Basic example" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
-                    <div class="progress-bar" style="width: <%= fitnessGoals.currentcalories / fitnessGoals.goalcalories * 100 %>%"></div>
+                    <div class="progress-bar" style="width: <%= healthMetrics.currentcalories / healthMetrics.goalcalories * 100 %>%"></div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        <div class="col-sm-4">
+          <div class="card">
+            <div class="card-body">
+              <h2 class="card-title">Fitness Goals</h2>
+              <ul class="list-group list-group-flush">
+                <% for (let i = 0; i < fitnessGoals.length; i++) { %>
+                <li id="<%=fitnessGoals[i].goalid%>" class="list-group-item"><input onchange="handleCompleteGoal(event)" class="form-check-input fitness-goal-check" type="radio" /><%=fitnessGoals[i].goalcontent%></li>
+                <% } %>
+              </ul>
+
+              <div class="d-grid gap-2">
+                <input id="add-goal-input" class="form-control no-border border-0" type="text" placeholder="Ex. Go for a run!" />
+                <p id="add-goal-error" class="text-danger hidden" style="margin-left: 0.75rem">Goal cannot be empty.</p>
+                <button id="add-goal-button" class="btn btn-primary rounded-pill" type="button">Add Goal</button>
+              </div>
+
+              <br />
+
+              <h2 class="card-title">
+                Fitness Achievements<button id="edit-achievements" class="edit-button"><img src="images/edit.png" alt="edit.png" /></button>
+              </h2>
+              <ul class="list-group list-group-flush">
+                <% for (let i = 0; i < fitnessAchievements.length; i++) { %>
+                <li id="<%=fitnessAchievements[i].goalid%>" class="list-group-item">
+                  <%=fitnessAchievements[i].goalcontent%>
+                  <button type="button" class="edit-button delete-event hidden" style="margin-top: -0.25rem" onclick="handleDeleteAchievement(event)"><img src="images/x.png" /></button>
+                </li>
+                <% } %>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-4">
+          <div class="card">
+            <div class="card-body">
+              <h2 class="card-title">
+                Fitness Routines<button id="edit-routines" class="edit-button"><img src="images/edit.png" alt="edit.png" /></button>
+              </h2>
+              <ul class="list-group list-group-flush">
+                <% for (let i = 0; i < fitnessRoutines.length; i++) { %>
+                <li id="<%=fitnessRoutines[i].routineid%>" class="list-group-item">
+                  <%=fitnessRoutines[i].routinecontent%>
+                  <button type="button" class="edit-button delete-routine hidden" style="margin-top: -0.25rem" onclick="handleDeleteRoutine(event)"><img src="images/x.png" /></button>
+                </li>
+                <% } %>
+              </ul>
+
+              <div class="d-grid gap-2">
+                <input id="add-routine-input" class="form-control no-border border-0" type="text" placeholder="Ex. Do 5 Push Ups" />
+                <p id="add-routine-error" class="text-danger hidden" style="margin-left: 0.75rem">Routine cannot be empty.</p>
+                <button id="add-routine-button" class="btn btn-primary rounded-pill" type="button">Add Routine</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <script src="js/dashboardMember.js"></script>
+        <% } %> <% if (accountType === "Trainer" || accountType === "Admin"){ %>
+        <div class="col-sm-4">
+          <div class="card">
+            <div class="card-body">
+              <h2 class="card-title">Members List</h2>
+              <div class="d-grid gap-2" style="margin-bottom: 1rem;">
+                <input id="search-member-input" class="form-control no-border border-0" type="text" placeholder="Enter user's first name" />
+                <p id="search-member-error" class="text-danger hidden" style="margin-left: 0.75rem">No members found.</p>
+                <button id="search-member-button" class="btn btn-primary rounded-pill" type="button">Search User</button>
+              </div>
+              <div class="accordion" id="membersList">
+                <% for (let i = 0; i < membersList.length; i++) { %>
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%=membersList[i].username%>" aria-expanded="true" aria-controls="collapse<%=membersList[i].username%>"><%=membersList[i].username%></button>
+                  </h2>
+                  <div id="collapse<%=membersList[i].username%>" class="accordion-collapse collapse" data-bs-parent="#membersList">
+                    <div class="accordion-body">
+                      <div>First Name: <%=membersList[i].firstname%></div>
+                      <div>Last Name: <%=membersList[i].lastname%></div>
+                    </div>
+                  </div>
+                </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+        <script src="js/dashboardTrainer.js"></script>
         <% } %>
       </div>
     </div>
-    <script src="js/dashboard.js"></script>
+    <script src="js/accountInfo.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
   </body>
 </html>

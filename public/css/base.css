@@ -1,0 +1,42 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap");
+
+body {
+    font-family: "Poppins", sans-serif;
+}
+
+.content-box {
+    margin: 1rem;
+}
+
+.account-info-edit-input {
+    width: 10rem; 
+    position: relative;
+    display: none;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out
+}
+
+.account-info-edit-submit{
+    margin-top: 1rem;
+}
+
+.edit-button {
+    position: absolute;
+    right: 1rem;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.hidden {
+    display: none;
+}
