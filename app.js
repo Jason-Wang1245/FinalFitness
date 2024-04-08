@@ -79,18 +79,27 @@ const initialize = (passport) => {
             });
           });
         });
-      } else if (data.accounttype === "Trainer" || accountType === "Admin") {
+      } else if (data.accounttype === "Trainer") {
         const getMembersQuery = {
           text: "SELECT * FROM users WHERE accountType = $1",
           values: ["Member"]
         }
-
+        // retrieve list of members
         client.query(getMembersQuery, (err, result) => {
           if (err) console.log(err);
           data.membersList = result.rows;
-
-          return done(null, data);
-        })
+          const getTrainerAvailableAppointments = {
+            text: "SELECT * FROM availableAppointments WHERE trainerUsername = $1",
+            values: [id]
+          }
+          // retrieve this trainers available appointments
+          client.query(getTrainerAvailableAppointments, (err, result) => {
+            if (err) console.log(err);
+            data.myAvailableAppointments = result.rows;
+            
+            return done(null, data);
+          });
+        });
       } else return done(null, data);
     });
   });
@@ -151,7 +160,9 @@ app.get("/appointments", (req, res) => {
       username: req.user.username,
       firstName: req.user.firstname, 
       lastName: req.user.lastname, 
-      accountType: req.user.accounttype, });
+      accountType: req.user.accounttype, 
+      myAvailableAppointments: req.user.myAvailableAppointments
+    });
   } else {
     res.redirect("/signin");
   }
@@ -432,5 +443,41 @@ app.post("/searchMember", (req, res) => {
     if (err) console.log(err);
     res.json(result.rows);
   })
-})
+});
+
+// APPOINTMENTS
+// create appointment
+app.post("/createAppointment", (req, res) => {
+  let title = req.body.title.charAt(0).toUpperCase();
+  if (req.body.title.trim().length > 1) title += req.body.title.slice(1).toLowerCase().trimEnd();
+  const date = req.body.date;
+  const startingTime = req.body.startingTime;
+  const endingTime = req.body.endingTime;
+  const trainer = req.body.username;
+  const capacity = req.body.capacity;
+  const newUniqueId = new Uint32Array(1)[0] = crypto.getRandomValues(new Uint32Array(1))[0];
+
+  const createAppointmentQuery = {
+    text: "INSERT INTO availableAppointments (appointmentId, appointmentName, trainerUsername, startTime, endTime, date, capacity) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+    values: [newUniqueId, title, trainer, startingTime, endingTime, date, capacity]
+  }
+
+  client.query(createAppointmentQuery);
+
+  res.redirect("/appointments");
+});
+
+// delete appointment
+app.post("/deleteAppointment", (req, res) => {
+  const appointmentId = req.body.appointmentId;
+
+  const deleteAppointmentQuery = {
+    text: "DELETE FROM availableAppointments WHERE appointmentId = $1",
+    values: [appointmentId]
+  }
+
+  client.query(deleteAppointmentQuery);
+
+  res.redirect("/appointments");
+});
 app.listen(process.env.PORT || 3000);
