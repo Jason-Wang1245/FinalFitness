@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+    <link rel="stylesheet" href="css/classes.css" />
+    <title>Classes</title>
+  </head>
+  <body>
+    <div id="hiddenData" style="display: none">
+      <span id="username" data-value="<%= username %>"></span>
+    </div>
+    <%- include('partials/header') %>
+
+    <div class="content-box">
+      <div class="row">
+        <% if (accountType === "Admin") { %>
+        <div class="col-sm-4">
+          <div class="card">
+            <div class="card-body">
+              <h2 class="card-title">Posted Classes</h2>
+
+              <p id="classError" class="text-danger hidden" style="margin-bottom: 1rem"></p>
+              <div class="d-grid gap-2" style="margin-bottom: 1rem">
+                <button id="create-class-button" class="btn btn-primary rounded-pill" type="button" data-bs-toggle="modal" data-bs-target="#createClass">Create Class</button>
+              </div>
+              <div class="accordion" id="classes">
+                <% for (let i = 0; i < classes.length; i++) { %> <% const curClass = classes[i]%>
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%=curClass.classid%>" aria-expanded="true" aria-controls="collapse<%=curClass.classid%>"><%=curClass.classname%></button>
+                  </h2>
+                  <div id="collapse<%=curClass.classid%>" class="accordion-collapse collapse" data-bs-parent="#classes">
+                    <div class="accordion-body">
+                      <div>Date: <%=curClass.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })%></div>
+                      <div>Start Time: <%=((curClass.starttime.substring(0, 2) % 12 == 0) ? 12 : (curClass.starttime.substring(0, 2) % 12)) + ":" + curClass.starttime.substring(3, 5) + (curClass.starttime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
+                      <div>End Time: <%=((curClass.endtime.substring(0, 2) % 12 == 0) ? 12 : (curClass.endtime.substring(0, 2) % 12)) + ":" + curClass.endtime.substring(3, 5) + (curClass.endtime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
+                      <div>Capacity: <%=curClass.currentcapacity%> / <%=curClass.maxcapacity%></div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-danger delete-appointment <%= curClass.currentcapacity === 0 ? '' : 'hidden' %>" onclick="handleDeleteClass(event)">Delete Class</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal fade" id="createClass" tabindex="-1" aria-labelledby="createClass" aria-hidden="true">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Class Details</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label for="className" class="form-label">Class Name</label>
+                  <input type="text" class="form-control" id="className" name="className" />
+                </div>
+                <div class="mb-3">
+                  <label for="classDate" class="form-label">Class Date</label>
+                  <input type="date" class="form-control" id="classDate" name="classDate" min="<%= (new Date()).toISOString().split('T')[0] %>" />
+                </div>
+                <div class="mb-3">
+                  <label for="classStartingTime" class="form-label">Class Starting Time</label>
+                  <input type="time" class="form-control" id="classStartingTime" name="classStartingTime" />
+                </div>
+                <div class="mb-3">
+                  <label for="classEndingTime" class="form-label">Class Ending Time</label>
+                  <input type="time" class="form-control" id="classEndingTime" name="classEndingTime" />
+                </div>
+                <div class="mb-3">
+                  <label for="classMaximumCapacity" class="form-label">Class Maximum Capacity</label>
+                  <input type="number" class="form-control" id="classMaximumCapacity" name="classMaximumCapacity" />
+                </div>
+                <p id="classCreateError" class="text-danger hidden"></p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="submitClass">Create Class</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <script src="js/classesAdmin.js"></script>
+        <% } %>
+      </div>
+    </div>
+
+    <script src="js/accountInfo.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  </body>
+</html>

@@ -48,8 +48,6 @@ const handleDeleteAppointment = (event) => {
     if (response.status === 304){
       appointmentError.innerText = "Appointment is already booked.";
       appointmentError.style.display = "inline";
-    } else {
-      window.location.reload();
-    }
+    } else window.location.reload();
   });
 };

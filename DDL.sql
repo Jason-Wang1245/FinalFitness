@@ -43,7 +43,6 @@ CREATE TABLE availableAppointments (
 	startTime TIME NOT NULL,
 	endTime TIME NOT NULL,
 	date DATE NOT NULL,
-	capacity INT NOT NULL DEFAULT 1,
 	FOREIGN KEY (trainerUsername) 
 		REFERENCES users(username)
 );
@@ -56,7 +55,6 @@ CREATE TABLE bookedAppointments (
 	startTime TIME NOT NULL,
 	endTime TIME NOT NULL,
 	date DATE NOT NULL,
-	capacity INT NOT NULL DEFAULT 1,
 	FOREIGN KEY (trainerUsername) 
 		REFERENCES users(username),
 	FOREIGN KEY (memberUsername) 
@@ -89,6 +87,26 @@ CREATE TABLE equipment (
 	currentDurability INT NOT NULL,
 	maximumDurability INT NOT NULL,
 	CONSTRAINT check_durability CHECK (currentDurability <= maximumDurability)
+);
+
+CREATE TABLE classes (
+	classId BIGINT PRIMARY KEY,
+	className TEXT NOT NULL,
+	currentCapacity INT NOT NULL DEFAULT 0,
+	maxCapacity INT NOT NULL,
+	startTime TIME NOT NULL,
+	endTime TIME NOT NULL,
+	date DATE NOT NULL
+);
+
+CREATE TABLE classBooking (
+	classId BIGINT,
+	memberUsername VARCHAR(20),
+	FOREIGN KEY (memberUsername) 
+		REFERENCES users(username),
+	FOREIGN KEY (classId) 
+		REFERENCES classes(classId),
+	PRIMARY KEY (classId, memberUsername)
 );
 
 DROP TABLE bookedAppointments;

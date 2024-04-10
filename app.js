@@ -82,10 +82,23 @@ const initialize = (passport) => {
       values: [id],
     };
 
+
     // retrieve user data
     client.query(userQuery, (err, result) => {
       if (err) console.log(err);
       let data = result.rows[0];
+  
+      if (data.accounttype === "Admin" || data.accounttype === "Member"){
+        const getClassesQuery = {
+          text: "SELECT * FROM classes",
+          values: []
+        }
+
+        client.query(getClassesQuery, (err, result) => {
+          if (err) console.log(err);
+          data.classes = result.rows;
+        })
+      }
       // if member, retrieve fitness goal data
       if (data.accounttype === "Member") {
         const healthMetricsQuery = {
@@ -279,9 +292,7 @@ app.get("/dashboard", (req, res) => {
         accountType: req.user.accounttype,
       });
     }
-  } else {
-    res.redirect("/signin");
-  }
+  } else res.redirect("/signin");
 });
 
 app.get("/appointments", (req, res) => {
@@ -305,9 +316,7 @@ app.get("/appointments", (req, res) => {
         bookedAppointments: req.user.bookedAppointments,
       });
     }
-  } else {
-    res.redirect("/signin");
-  }
+  } else res.redirect("/signin");
 });
 
 app.get("/rooms", (req, res) => {
@@ -336,9 +345,7 @@ app.get("/rooms", (req, res) => {
         });
       }
     }
-  } else {
-    res.redirect("/signin");
-  }
+  } else res.redirect("/signin");
 });
 
 app.get("/equipment", (req, res) => {
@@ -351,12 +358,24 @@ app.get("/equipment", (req, res) => {
         accountType: req.user.accounttype,
         equipment: req.user.equipment
       });
+    } else res.redirect("/dashboard");
+  } else res.redirect("/signin");
+});
+
+app.get("/classes", (req, res) => {
+  if (req.isAuthenticated()) {
+    if (req.user.accounttype === "Admin" || req.user.accounttype === "Member"){
+      res.render("classes.ejs", {
+        username: req.user.username,
+        firstName: req.user.firstname,
+        lastName: req.user.lastname,
+        accountType: req.user.accounttype,
+        classes: req.user.classes
+      })
     } else {
       res.redirect("/dashboard");
     }
-  } else {
-    res.redirect("/signin");
-  }
+  } else res.redirect("/signin");
 });
 
 app.get("/signup", (req, res) => {
@@ -906,4 +925,39 @@ app.post("/editEquipmentDurability", (req, res) => {
   }
   
   res.redirect("/equipment")
+});
+
+// CLASSES
+// add class (no time conflict check)
+app.post("/createClass", (req, res) => {
+  let name = req.body.name.charAt(0).toUpperCase();
+  if (req.body.name.trim().length > 1) name += req.body.name.slice(1).toLowerCase().trimEnd();
+  const date = req.body.date;
+  const startingTime = req.body.startingTime;
+  const endingTime = req.body.endingTime;
+  const maxCapacity = req.body.maxCapacity;
+  const newUniqueId = (new Uint32Array(1)[0] = crypto.getRandomValues(new Uint32Array(1))[0]);
+
+  const createClassQuery = {
+    text: "INSERT INTO classes (classId, className, maxCapacity, startTime, endTime, date) VALUES ($1, $2, $3, $4, $5, $6)",
+    values: [newUniqueId, name, maxCapacity, startingTime, endingTime, date]
+  }
+
+  client.query(createClassQuery);
+
+  res.redirect("/classes");
+});
+
+// delete a class
+app.post("/deleteClass", (req, res) => {
+  const classId = req.body.classId;
+
+  const deleteClassQuery = {
+    text: "DELETE FROM classes WHERE classId = $1",
+    values: [classId]
+  }
+
+  client.query(deleteClassQuery);
+
+  res.redirect("/classes");
 });
