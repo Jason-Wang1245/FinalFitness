@@ -3,6 +3,7 @@ const appointmentDateInput = document.getElementById("appointmentDate");
 const appointmentStartingTimeInput = document.getElementById("appointmentStartingTime");
 const appointmentEndingTimeInput = document.getElementById("appointmentEndingTime");
 const submitAppointmentButton = document.getElementById("submitAppointment");
+const appointmentCreateError = document.getElementById("appointmentCreateError");
 const appointmentError = document.getElementById("appointmentError");
 
 // post request for creating new appointment
@@ -13,26 +14,29 @@ submitAppointmentButton.addEventListener("click", () => {
   const endingTime = appointmentEndingTimeInput.value;
 
   if (title === "" || date === "" || startingTime === "" || endingTime === "") {
-    appointmentError.innerText = "Please enter a value for all fields.";
-    appointmentError.style.display = "inline";
+    appointmentCreateError.innerText = "Please enter a value for all fields.";
+    appointmentCreateError.style.display = "inline";
   } else if (endingTime <= startingTime) {
-    appointmentError.innerText = "Ending Time must be greater than Starting Time.";
-    appointmentError.style.display = "inline";
+    appointmentCreateError.innerText = "Ending Time must be greater than Starting Time.";
+    appointmentCreateError.style.display = "inline";
   } else {
     fetch("/createAppointment", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ title: title, date: date, startingTime: startingTime, endingTime: endingTime, username: username, capacity: 1 }),
+      body: JSON.stringify({ title: title, date: date, startingTime: startingTime, endingTime: endingTime, username: username }),
     }).then((response) => {
-      window.location.reload();
+      if (response.status === 305) {
+        appointmentCreateError.innerText = "You already have an appointment post during this time period.";
+        appointmentCreateError.style.display = "inline";
+      } else window.location.reload();
     });
   }
 });
 
 const handleDeleteAppointment = (event) => {
-  const appointmentId = event.target.parentNode.parentNode.id.substr(8);
+  const appointmentId = event.target.parentNode.parentNode.parentNode.id.substr(8);
 
   fetch("/deleteAppointment", {
     method: "POST",
@@ -41,6 +45,11 @@ const handleDeleteAppointment = (event) => {
     },
     body: JSON.stringify({ appointmentId: appointmentId }),
   }).then((response) => {
-    window.location.reload();
+    if (response.status === 304){
+      appointmentError.innerText = "Appointment is already booked.";
+      appointmentError.style.display = "inline";
+    } else {
+      window.location.reload();
+    }
   });
 };

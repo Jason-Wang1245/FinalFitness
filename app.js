@@ -15,6 +15,44 @@ const hashPassword = (password) => {
   return hash.digest("hex");
 };
 
+// check if appointment is already booked
+async function isAvailable(appointmentId) {
+  const result = await client.query("SELECT COUNT(*) AS count FROM availableAppointments WHERE appointmentId = $1", [appointmentId]);
+  return result.rows[0].count === "1";
+}
+
+// check if there is a time conflict with the given time of the given user
+async function isAppointmentTimeConflict(startTime, endTime, date, username, accountType) {
+  if (accountType === "Trainer") {
+    const result = await client.query("SELECT startTime, endTime, date FROM availableAppointments WHERE trainerUsername = $1", [username]);
+
+    for (let i = 0; i < result.rows.length; i++) {
+      if (date === result.rows[i].date.toISOString().slice(0, 10) && ((endTime <= result.rows[i].endtime && endTime > result.rows[i].starttime) || (startTime > result.rows[i].starttime && startTime < result.rows[i].endtime))) return true;
+    }
+  }
+
+  let result;
+  if (accountType === "Member") result = await client.query("SELECT startTime, endTime, date FROM bookedAppointments WHERE memberUsername = $1", [username]);
+  else result = await client.query("SELECT startTime, endTime, date FROM bookedAppointments WHERE trainerUsername = $1", [username]);
+
+  for (let i = 0; i < result.rows.length; i++) {
+    if (date === result.rows[i].date.toISOString().slice(0, 10) && ((endTime <= result.rows[i].endtime && endTime > result.rows[i].starttime) || (startTime > result.rows[i].starttime && startTime < result.rows[i].endtime))) return true;
+  }
+
+  return false;
+}
+
+// checks if the room is a time conflict of the given time
+async function isRoomTimeConflict(startTime, endTime, date, roomName) {
+  const result = await client.query("SELECT startTime, endTime, date FROM roomBookings WHERE roomName = $1", [roomName]);
+
+  for (let i = 0; i < result.rows.length; i++) {
+    if (date === result.rows[i].date.toISOString().slice(0, 10) && ((endTime <= result.rows[i].endtime && endTime > result.rows[i].starttime) || (startTime > result.rows[i].starttime && startTime < result.rows[i].endtime))) return true;
+  }
+
+  return false;
+}
+
 const initialize = (passport) => {
   // authenticating user login
   const authenticateUser = (username, password, done) => {
@@ -69,38 +107,123 @@ const initialize = (passport) => {
             const fitnessRoutinesQuery = {
               text: "SELECT * FROM fitnessRoutines WHERE username = $1",
               values: [id],
-            }
+            };
             // retrieve fitness routines data
             client.query(fitnessRoutinesQuery, (err, result) => {
               if (err) console.log(err);
               data.fitnessRoutines = result.rows;
+              const getAvailableAppointments = {
+                text: "SELECT date, startTime, endTime, appointmentName, firstName, lastName, appointmentId FROM availableAppointments, users WHERE availableAppointments.trainerUsername = users.username ORDER BY date, startTime ASC",
+                values: [],
+              };
+              // retrieve available appointments
+              client.query(getAvailableAppointments, (err, result) => {
+                if (err) console.log(err);
+                data.availableAppointments = result.rows;
+                const getBookedAppointments = {
+                  text: "SELECT date, startTime, endTime, appointmentName, firstName, lastName, appointmentId FROM bookedAppointments, users WHERE bookedAppointments.trainerUsername = users.username AND bookedAppointments.memberUsername = $1 ORDER BY date, startTime ASC",
+                  values: [id],
+                };
+                // retrieve appointments that the user has booked
+                client.query(getBookedAppointments, (err, result) => {
+                  if (err) console.log(err);
+                  data.bookedAppointments = result.rows;
 
-              return done(null, data);
+                  return done(null, data);
+                });
+              });
             });
           });
         });
       } else if (data.accounttype === "Trainer") {
         const getMembersQuery = {
-          text: "SELECT * FROM users WHERE accountType = $1",
-          values: ["Member"]
-        }
+          text: "SELECT * FROM users WHERE accountType = $1 ORDER BY $2 ASC",
+          values: ["Member", "firstName"],
+        };
         // retrieve list of members
         client.query(getMembersQuery, (err, result) => {
           if (err) console.log(err);
           data.membersList = result.rows;
           const getTrainerAvailableAppointments = {
-            text: "SELECT * FROM availableAppointments WHERE trainerUsername = $1",
-            values: [id]
-          }
+            text: "SELECT * FROM availableAppointments WHERE trainerUsername = $1 ORDER BY date, startTime ASC",
+            values: [id],
+          };
           // retrieve this trainers available appointments
           client.query(getTrainerAvailableAppointments, (err, result) => {
             if (err) console.log(err);
             data.myAvailableAppointments = result.rows;
-            
-            return done(null, data);
+            const getBookedAppointments = {
+              text: "SELECT date, startTime, endTime, appointmentName, firstName, lastName, appointmentId FROM bookedAppointments JOIN users ON bookedAppointments.memberUsername = users.username WHERE bookedAppointments.trainerUsername = $1 ORDER BY date, startTime ASC",
+              values: [id],
+            };
+            // get all the appointments booked under this trainer
+            client.query(getBookedAppointments, (err, result) => {
+              if (err) console.log(err);
+              data.bookedAppointments = result.rows;
+              const getRoomsQuery = {
+                text: "SELECT * FROM rooms ORDER BY roomName ASC",
+                values: [],
+              };
+              // retrieve all rooms
+              client.query(getRoomsQuery, (err, result) => {
+                if (err) console.log(err);
+                data.rooms = result.rows;
+                const getBookedRoomsQuery = {
+                  text: "SELECT * FROM roomBookings ORDER BY roomName, date, startTime ASC",
+                  values: [],
+                };
+                // retrieve all room bookings
+                client.query(getBookedRoomsQuery, (err, result) => {
+                  if (err) console.log(err);
+                  data.bookedRooms = result.rows;
+
+                  return done(null, data);
+                });
+              });
+            });
           });
         });
-      } else return done(null, data);
+      } else if (data.accounttype === "Admin") {
+        const getRoomsQuery = {
+          text: "SELECT * FROM rooms ORDER BY roomName ASC",
+          values: [],
+        };
+        // retrieve all rooms
+        client.query(getRoomsQuery, (err, result) => {
+          if (err) console.log(err);
+          data.rooms = result.rows;
+          const getRoomsQuery = {
+            text: "SELECT * FROM rooms ORDER BY roomName ASC",
+            values: [],
+          };
+          // retrieve all rooms
+          client.query(getRoomsQuery, (err, result) => {
+            if (err) console.log(err);
+            data.rooms = result.rows;
+            const getBookedRoomsQuery = {
+              text: "SELECT * FROM roomBookings ORDER BY roomName, date, startTime ASC",
+              values: [],
+            };
+            // retrieve all room bookings
+            client.query(getBookedRoomsQuery, (err, result) => {
+              if (err) console.log(err);
+              data.bookedRooms = result.rows;
+              const getEquipmentQuery = {
+                text: "SELECT * FROM equipment ORDER BY equipmentName ASC",
+                values: []
+              }
+              // retrieve all equipment
+              client.query(getEquipmentQuery, (err, result) => {
+                if (err) console.log(err);
+                data.equipment = result.rows;
+
+                return done(null, data);
+              })
+              
+            });
+          });
+        });
+      }
     });
   });
 };
@@ -130,23 +253,30 @@ app.get("/", (req, res) => {
 app.get("/dashboard", (req, res) => {
   if (req.isAuthenticated()) {
     if (req.user.accounttype === "Member") {
-      res.render("dashboard.ejs", { 
-        username: req.user.username, 
-        firstName: req.user.firstname, 
-        lastName: req.user.lastname, 
-        accountType: req.user.accounttype, 
-        healthMetrics: req.user.healthMetrics, 
-        fitnessGoals: req.user.fitnessGoals.filter(tuple => !tuple.iscomplete), 
-        fitnessAchievements: req.user.fitnessGoals.filter(tuple => tuple.iscomplete),
-        fitnessRoutines: req.user.fitnessRoutines 
+      res.render("dashboard.ejs", {
+        username: req.user.username,
+        firstName: req.user.firstname,
+        lastName: req.user.lastname,
+        accountType: req.user.accounttype,
+        healthMetrics: req.user.healthMetrics,
+        fitnessGoals: req.user.fitnessGoals.filter((tuple) => !tuple.iscomplete),
+        fitnessAchievements: req.user.fitnessGoals.filter((tuple) => tuple.iscomplete),
+        fitnessRoutines: req.user.fitnessRoutines,
+      });
+    } else if (req.user.accounttype === "Trainer") {
+      res.render("dashboard.ejs", {
+        username: req.user.username,
+        firstName: req.user.firstname,
+        lastName: req.user.lastname,
+        accountType: req.user.accounttype,
+        membersList: req.user.membersList,
       });
     } else {
-      res.render("dashboard.ejs", { 
-        username: req.user.username, 
-        firstName: req.user.firstname, 
-        lastName: req.user.lastname, 
-        accountType: req.user.accounttype, 
-        membersList: req.user.membersList
+      res.render("dashboard.ejs", {
+        username: req.user.username,
+        firstName: req.user.firstname,
+        lastName: req.user.lastname,
+        accountType: req.user.accounttype,
       });
     }
   } else {
@@ -155,18 +285,79 @@ app.get("/dashboard", (req, res) => {
 });
 
 app.get("/appointments", (req, res) => {
-  if (req.isAuthenticated()){
-    res.render("appointments.ejs", {
-      username: req.user.username,
-      firstName: req.user.firstname, 
-      lastName: req.user.lastname, 
-      accountType: req.user.accounttype, 
-      myAvailableAppointments: req.user.myAvailableAppointments
-    });
+  if (req.isAuthenticated()) {
+    if (req.user.accounttype === "Member") {
+      res.render("appointments.ejs", {
+        username: req.user.username,
+        firstName: req.user.firstname,
+        lastName: req.user.lastname,
+        accountType: req.user.accounttype,
+        availableAppointments: req.user.availableAppointments,
+        bookedAppointments: req.user.bookedAppointments,
+      });
+    } else {
+      res.render("appointments.ejs", {
+        username: req.user.username,
+        firstName: req.user.firstname,
+        lastName: req.user.lastname,
+        accountType: req.user.accounttype,
+        myAvailableAppointments: req.user.myAvailableAppointments,
+        bookedAppointments: req.user.bookedAppointments,
+      });
+    }
   } else {
     res.redirect("/signin");
   }
-})
+});
+
+app.get("/rooms", (req, res) => {
+  if (req.isAuthenticated()) {
+    if (req.user.accounttype === "Member") {
+      res.redirect("/dashboard");
+    } else {
+      if (req.user.accounttype === "Admin") {
+        res.render("rooms.ejs", {
+          username: req.user.username,
+          firstName: req.user.firstname,
+          lastName: req.user.lastname,
+          accountType: req.user.accounttype,
+          rooms: req.user.rooms,
+          bookedRooms: req.user.bookedRooms,
+        });
+      } else if (req.user.accounttype === "Trainer") {
+        res.render("rooms.ejs", {
+          username: req.user.username,
+          firstName: req.user.firstname,
+          lastName: req.user.lastname,
+          accountType: req.user.accounttype,
+          rooms: req.user.rooms,
+          bookedRooms: req.user.bookedRooms,
+          myBookedRooms: req.user.bookedRooms.filter((item) => item.trainerusername === req.user.username),
+        });
+      }
+    }
+  } else {
+    res.redirect("/signin");
+  }
+});
+
+app.get("/equipment", (req, res) => {
+  if (req.isAuthenticated()) {
+    if (req.user.accounttype === "Admin") {
+      res.render("equipment.ejs", {
+        username: req.user.username,
+        firstName: req.user.firstname,
+        lastName: req.user.lastname,
+        accountType: req.user.accounttype,
+        equipment: req.user.equipment
+      });
+    } else {
+      res.redirect("/dashboard");
+    }
+  } else {
+    res.redirect("/signin");
+  }
+});
 
 app.get("/signup", (req, res) => {
   res.render("signup.ejs", { errorMessage: "" });
@@ -255,6 +446,7 @@ app.post("/signup", (req, res) => {
 
 app.post("/signin", passport.authenticate("local", { successRedirect: "/dashboard", failureRedirect: "/signin", failureFlash: true }));
 
+// HEALTH METRICS
 // update weight values
 app.post("/editWeight", (req, res) => {
   const currentWeight = req.body.currentWeight;
@@ -271,7 +463,6 @@ app.post("/editWeight", (req, res) => {
   res.redirect("/dashboard");
 });
 
-// HEALTH METRICS
 // update steps values
 app.post("/editSteps", (req, res) => {
   const currentSteps = req.body.currentSteps;
@@ -304,6 +495,7 @@ app.post("/editCalories", (req, res) => {
   res.redirect("/dashboard");
 });
 
+// USER INFORMATION
 // update user information
 app.post("/updateUserInfo", (req, res, next) => {
   const username = req.body.username;
@@ -366,12 +558,12 @@ app.post("/addGoal", (req, res) => {
   // makes first characters uppercase
   let goalContent = req.body.goalContent.charAt(0).toUpperCase();
   if (req.body.goalContent.trim().length > 1) goalContent += req.body.goalContent.slice(1).toLowerCase().trimEnd();
-  const newUniqueId = new Uint32Array(1)[0] = crypto.getRandomValues(new Uint32Array(1))[0];
-  
+  const newUniqueId = (new Uint32Array(1)[0] = crypto.getRandomValues(new Uint32Array(1))[0]);
+
   const addGoalQuery = {
     text: "INSERT INTO fitnessGoals (goalId, username, goalContent, isComplete) VALUES ($1, $2, $3, $4)",
     values: [newUniqueId, username, goalContent, false],
-  }
+  };
 
   client.query(addGoalQuery);
 
@@ -399,12 +591,12 @@ app.post("/addRoutine", (req, res) => {
   // makes first characters uppercase
   let routineContent = req.body.routineContent.charAt(0).toUpperCase();
   if (req.body.routineContent.trim().length > 1) routineContent += req.body.routineContent.slice(1).toLowerCase().trimEnd();
-  const newUniqueId = new Uint32Array(1)[0] = crypto.getRandomValues(new Uint32Array(1))[0];
-  
+  const newUniqueId = (new Uint32Array(1)[0] = crypto.getRandomValues(new Uint32Array(1))[0]);
+
   const addRoutineQuery = {
     text: "INSERT INTO fitnessRoutines (routineId, username, routineContent) VALUES ($1, $2, $3)",
     values: [newUniqueId, username, routineContent],
-  }
+  };
 
   client.query(addRoutineQuery);
 
@@ -430,19 +622,19 @@ app.post("/searchMember", (req, res) => {
   const firstName = req.body.firstName;
 
   const getMembersQuery = {
-    text: "SELECT * FROM users WHERE firstName = $1",
-    values: [firstName]
-  }
+    text: "SELECT * FROM users WHERE firstName = $1 ORDER BY $2 ASC",
+    values: [firstName, "firstName"],
+  };
 
-  if (firstName.trim().length === 0){
-    getMembersQuery.text = "SELECT * FROM users WHERE accountType = $1";
-    getMembersQuery.values = ["Member"];
-  } 
+  if (firstName.trim().length === 0) {
+    getMembersQuery.text = "SELECT * FROM users WHERE accountType = $1 ORDER BY $2 ASC";
+    getMembersQuery.values = ["Member", "firstName"];
+  }
 
   client.query(getMembersQuery, (err, result) => {
     if (err) console.log(err);
     res.json(result.rows);
-  })
+  });
 });
 
 // APPOINTMENTS
@@ -454,30 +646,264 @@ app.post("/createAppointment", (req, res) => {
   const startingTime = req.body.startingTime;
   const endingTime = req.body.endingTime;
   const trainer = req.body.username;
-  const capacity = req.body.capacity;
-  const newUniqueId = new Uint32Array(1)[0] = crypto.getRandomValues(new Uint32Array(1))[0];
+  const newUniqueId = (new Uint32Array(1)[0] = crypto.getRandomValues(new Uint32Array(1))[0]);
 
-  const createAppointmentQuery = {
-    text: "INSERT INTO availableAppointments (appointmentId, appointmentName, trainerUsername, startTime, endTime, date, capacity) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-    values: [newUniqueId, title, trainer, startingTime, endingTime, date, capacity]
-  }
+  isAppointmentTimeConflict(startingTime + ":00", endingTime + ":00", date, trainer, "Trainer").then((isConflict) => {
+    if (isConflict) {
+      const error = new Error("Time conflict.");
+      error.status = 305;
+      res.status(error.status).json({ error: "Time conflict" });
+    } else {
+      const createAppointmentQuery = {
+        text: "INSERT INTO availableAppointments (appointmentId, appointmentName, trainerUsername, startTime, endTime, date) VALUES ($1, $2, $3, $4, $5, $6)",
+        values: [newUniqueId, title, trainer, startingTime, endingTime, date],
+      };
 
-  client.query(createAppointmentQuery);
+      client.query(createAppointmentQuery);
 
-  res.redirect("/appointments");
+      res.redirect("/appointments");
+    }
+  });
 });
 
 // delete appointment
 app.post("/deleteAppointment", (req, res) => {
   const appointmentId = req.body.appointmentId;
 
+  isAvailable(appointmentId).then((available) => {
+    if (available) {
+      const deleteAppointmentQuery = {
+        text: "DELETE FROM availableAppointments WHERE appointmentId = $1",
+        values: [appointmentId],
+      };
+
+      client.query(deleteAppointmentQuery);
+
+      res.redirect("/appointments");
+    } else {
+      const error = new Error("Appointment is already booked");
+      error.status = 304;
+      res.status(error.status).json({ error: "Appointment is already booked" });
+    }
+  });
+});
+app.listen(process.env.PORT || 3000);
+
+// book appointment (move appointment from availableAppointments to bookedAppointments)
+app.post("/bookAppointment", (req, res) => {
+  const appointmentId = req.body.appointmentId;
+  const username = req.body.username;
+
+  isAvailable(appointmentId).then((available) => {
+    const getAppointmentQuery = {
+      text: "SELECT * FROM availableAppointments WHERE appointmentId = $1",
+      values: [appointmentId],
+    };
+    client.query(getAppointmentQuery, (err, result) => {
+      if (err) console.log(err);
+      const appointment = result.rows[0];
+
+      if (available) {
+        isAppointmentTimeConflict(appointment.starttime, appointment.endtime, appointment.date.toISOString().slice(0, 10), username, "Member").then((isConflict) => {
+          if (isConflict) {
+            const error = new Error("Time conflict.");
+            error.status = 305;
+            res.status(error.status).json({ error: "Time conflict" });
+          } else {
+            const addAppointmentQuery = {
+              text: "INSERT INTO bookedAppointments (appointmentId, appointmentName, trainerUsername, memberUsername, startTime, endTime, date) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+              values: [appointmentId, appointment.appointmentname, appointment.trainerusername, username, appointment.starttime, appointment.endtime, appointment.date],
+            };
+
+            client.query(addAppointmentQuery);
+
+            const deleteAppointmentQuery = {
+              text: "DELETE FROM availableAppointments WHERE appointmentId = $1",
+              values: [appointmentId],
+            };
+
+            client.query(deleteAppointmentQuery);
+
+            res.redirect("/appointments");
+          }
+        });
+      } else {
+        const error = new Error("Appointment is already booked");
+        error.status = 304;
+        res.status(error.status).json({ error: "Appointment is already booked" });
+      }
+    });
+  });
+});
+
+// cancel appointment (move appointment from bookedAppointments to availableAppointments)
+app.post("/cancelAppointment", (req, res) => {
+  const appointmentId = req.body.appointmentId;
+
+  const getAppointmentQuery = {
+    text: "SELECT * FROM bookedAppointments WHERE appointmentId = $1",
+    values: [appointmentId],
+  };
+
+  client.query(getAppointmentQuery, (err, result) => {
+    if (err) console.log(err);
+    const appointment = result.rows[0];
+
+    const addAppointmentQuery = {
+      text: "INSERT INTO availableAppointments (appointmentId, appointmentName, trainerUsername, startTime, endTime, date) VALUES ($1, $2, $3, $4, $5, $6)",
+      values: [appointment.appointmentid, appointment.appointmentname, appointment.trainerusername, appointment.starttime, appointment.endtime, appointment.date],
+    };
+
+    client.query(addAppointmentQuery);
+  });
+
   const deleteAppointmentQuery = {
-    text: "DELETE FROM availableAppointments WHERE appointmentId = $1",
-    values: [appointmentId]
-  }
+    text: "DELETE FROM bookedAppointments WHERE appointmentId = $1",
+    values: [appointmentId],
+  };
 
   client.query(deleteAppointmentQuery);
 
   res.redirect("/appointments");
 });
-app.listen(process.env.PORT || 3000);
+
+// ROOMS
+// create room
+app.post("/createRoom", (req, res) => {
+  const roomName = req.body.roomName.toUpperCase();
+  const roomCapacity = req.body.roomCapacity;
+
+  const checkRoomCapacity = {
+    text: "SELECT COUNT(*) AS count FROM rooms WHERE roomName = $1",
+    values: [roomName],
+  };
+
+  client.query(checkRoomCapacity, (err, result) => {
+    if (err) console.log(err);
+
+    if (result.rows[0].count !== "0") {
+      const error = new Error("Room name in use.");
+      error.status = 304;
+      res.status(error.status).json({ error: "Room name in use." });
+    } else {
+      const addRoomQuery = {
+        text: "INSERT INTO rooms (roomName, capacity) VALUES ($1, $2)",
+        values: [roomName, roomCapacity],
+      };
+
+      client.query(addRoomQuery);
+
+      res.redirect("/rooms");
+    }
+  });
+});
+// delete room (cascades and deletes room bookings associated with room as well)
+app.post("/deleteRoom", (req, res) => {
+  const roomName = req.body.roomName;
+
+  const deleteRoomQuery = {
+    text: "DELETE FROM rooms WHERE roomName = $1",
+    values: [roomName],
+  };
+
+  client.query(deleteRoomQuery);
+
+  res.redirect("/rooms");
+});
+
+// book room (checks for time conflicts)
+app.post("/bookRoom", (req, res) => {
+  const trainer = req.body.username;
+  const date = req.body.date;
+  const startingTime = req.body.startingTime;
+  const endingTime = req.body.endingTime;
+  const roomName = req.body.roomName;
+  const newUniqueId = (new Uint32Array(1)[0] = crypto.getRandomValues(new Uint32Array(1))[0]);
+
+  isRoomTimeConflict(startingTime + ":00", endingTime + ":00", date, roomName).then((isConflict) => {
+    if (isConflict) {
+      const error = new Error("Room time conflict.");
+      error.status = 304;
+      res.status(error.status).json({ error: "Room time conflict." });
+    } else {
+      const createRoomBookingQuery = {
+        text: "INSERT INTO roomBookings (bookingId, roomName, trainerUsername, startTime, endTime, date) VALUES ($1, $2, $3, $4, $5, $6)",
+        values: [newUniqueId, roomName, trainer, startingTime, endingTime, date],
+      };
+
+      client.query(createRoomBookingQuery);
+
+      res.redirect("/rooms");
+    }
+  });
+});
+// trainer cancel booking (deletes booking)
+app.post("/cancelBooking", (req, res) => {
+  const bookingId = req.body.bookingId;
+
+  const deleteRoomBooking = {
+    text: "DELETE FROM roomBookings WHERE bookingId = $1",
+    values: [bookingId],
+  };
+
+  client.query(deleteRoomBooking);
+
+  res.redirect("/rooms");
+});
+// admin delete booking (deletes booking)
+app.post("/deleteBooking", (req, res) => {
+  const bookingId = req.body.bookingId.substring(1);
+
+  const deleteRoomBooking = {
+    text: "DELETE FROM roomBookings WHERE bookingId = $1",
+    values: [bookingId],
+  };
+
+  client.query(deleteRoomBooking);
+
+  res.redirect("/rooms");
+});
+
+
+// EQUIPMENT
+// create equipment
+app.post("/createEquipment", (req, res) => {
+  let equipmentName = req.body.equipmentName.charAt(0).toUpperCase();
+  if (req.body.equipmentName.trim().length > 1) equipmentName += req.body.equipmentName.slice(1).toLowerCase().trimEnd();
+  const equipmentQuantity = req.body.equipmentQuantity;
+  const maximumDurability = req.body.maximumDurability;
+  const newUniqueId = (new Uint32Array(1)[0] = crypto.getRandomValues(new Uint32Array(1))[0]);
+
+  const addEquipmentQuery = {
+    text: "INSERT INTO equipment (equipmentId, equipmentName, equipmentQuantity, maximumDurability, currentDurability) VALUES ($1, $2, $3, $4, $5)",
+    values: [newUniqueId, equipmentName, equipmentQuantity, maximumDurability, maximumDurability]
+  }
+
+  client.query(addEquipmentQuery);
+
+  res.redirect("/equipment");
+});
+
+// edit durability
+app.post("/editEquipmentDurability", (req, res) => {
+  const equipmentId = req.body.equipmentId;
+  const newDurability = req.body.newDurability;
+
+  if (newDurability == 0){
+    const deleteEquipmentQuery = {
+      text: "DELETE FROM equipment WHERE equipmentId = $1",
+      values: [equipmentId]
+    }
+
+    client.query(deleteEquipmentQuery);
+  } else {
+    const editDurabilityQuery = {
+      text: "UPDATE equipment SET currentDurability = $1 WHERE equipmentId = $2",
+      values: [newDurability, equipmentId]
+    }
+
+    client.query(editDurabilityQuery);
+  }
+  
+  res.redirect("/equipment")
+});

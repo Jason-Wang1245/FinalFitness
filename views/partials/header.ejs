@@ -14,6 +14,15 @@
           <li class="nav-item">
             <a class="nav-link" href="/appointments">Appointments</a>
           </li>
+          <% if (accountType === "Trainer" || accountType === "Admin") { %>
+          <li class="nav-item">
+            <a class="nav-link" href="/rooms">Rooms</a>
+          </li>
+          <% } %> <% if (accountType === "Admin") { %>
+          <li class="nav-item">
+            <a class="nav-link" href="/equipment">Equipment</a>
+          </li>
+          <% } %>
         </ul>
 
         <button type="button" class="btn edit-button" data-bs-toggle="modal" data-bs-target="#editProfile" style="margin-right: 5.5rem">
@@ -34,7 +43,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
-        <div class="card" style="border: 2px solid rgba(0, 0, 0, 0);">
+        <div class="card" style="border: 2px solid rgba(0, 0, 0, 0)">
           <div class="card-body">
             <button id="account-info-edit" class="edit-button"><img src="images/edit.png" alt="edit.png" /></button>
             <h2 class="card-title">Account Information</h2>

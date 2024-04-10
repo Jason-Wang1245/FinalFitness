@@ -43,6 +43,7 @@ CREATE TABLE availableAppointments (
 	startTime TIME NOT NULL,
 	endTime TIME NOT NULL,
 	date DATE NOT NULL,
+	capacity INT NOT NULL DEFAULT 1,
 	FOREIGN KEY (trainerUsername) 
 		REFERENCES users(username)
 );
@@ -55,13 +56,46 @@ CREATE TABLE bookedAppointments (
 	startTime TIME NOT NULL,
 	endTime TIME NOT NULL,
 	date DATE NOT NULL,
+	capacity INT NOT NULL DEFAULT 1,
 	FOREIGN KEY (trainerUsername) 
 		REFERENCES users(username),
 	FOREIGN KEY (memberUsername) 
 		REFERENCES users(username)
 );
 
-DROP TABLE fitnessRoutines
+CREATE TABLE rooms (
+	roomName TEXT PRIMARY KEY,
+	capacity INT NOT NULL
+);
 
-DELETE FROM fitnessGoals;
+CREATE TABLE roomBookings (
+	bookingId BIGINT PRIMARY KEY,
+	roomName TEXT,
+	trainerUsername VARCHAR(20),
+	startTime TIME NOT NULL,
+	endTime TIME NOT NULL,
+	date DATE NOT NULL,
+	FOREIGN KEY (trainerUsername) 
+		REFERENCES users(username),
+	FOREIGN KEY (roomName)
+		REFERENCES rooms(roomName)
+		ON DELETE CASCADE
+);
+
+CREATE TABLE equipment (
+	equipmentId BIGINT PRIMARY KEY,
+	equipmentName TEXT NOT NULL,
+	equipmentQuantity INT NOT NULL,
+	currentDurability INT NOT NULL,
+	maximumDurability INT NOT NULL,
+	CONSTRAINT check_durability CHECK (currentDurability <= maximumDurability)
+);
+
+DROP TABLE bookedAppointments;
+DROP TABLE availableAppointments;
+
+DELETE FROM availableAppointments;
+DELETE FROM bookedAppointments;
 DELETE FROM users;
+
+SELECT startTime, endTime, date FROM bookedAppointments WHERE trainerUsername = 'a'
