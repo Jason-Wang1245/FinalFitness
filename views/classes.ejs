@@ -88,6 +88,64 @@
         </div>
 
         <script src="js/classesAdmin.js"></script>
+        <% } %> <% if (accountType === "Member") { %>
+        <div class="col-sm-4">
+          <div class="card">
+            <div class="card-body">
+              <h2 class="card-title">Available Classes</h2>
+
+              <p id="classBookingError" class="text-danger hidden" style="margin-bottom: 1rem"></p>
+              <div class="accordion" id="availableClasses">
+                <% for (let i = 0; i < classes.length; i++) { %> <% const curClass = classes[i]%> <% if (curClass.currentcapacity < curClass.maxcapacity && !bookedClasses.some((cur) => { return cur.classid === curClass.classid})) { %>
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%=curClass.classid%>" aria-expanded="true" aria-controls="collapse<%=curClass.classid%>"><%=curClass.classname%></button>
+                  </h2>
+                  <div id="collapse<%=curClass.classid%>" class="accordion-collapse collapse" data-bs-parent="#availableClasses">
+                    <div class="accordion-body">
+                      <div>Date: <%=curClass.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })%></div>
+                      <div>Start Time: <%=((curClass.starttime.substring(0, 2) % 12 == 0) ? 12 : (curClass.starttime.substring(0, 2) % 12)) + ":" + curClass.starttime.substring(3, 5) + (curClass.starttime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
+                      <div>End Time: <%=((curClass.endtime.substring(0, 2) % 12 == 0) ? 12 : (curClass.endtime.substring(0, 2) % 12)) + ":" + curClass.endtime.substring(3, 5) + (curClass.endtime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
+                      <div>Capacity: <%=curClass.currentcapacity%> / <%=curClass.maxcapacity%></div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-success join-lass" onclick="handleJoinClass(event)">Join Class</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <% } %> <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-4">
+          <div class="card">
+            <div class="card-body">
+              <h2 class="card-title">Booked Classes</h2>
+              <div class="accordion" id="bookedClasses">
+                <% for (let i = 0; i < bookedClasses.length; i++) { %> <% const curClass = bookedClasses[i]%>
+                  <div class="accordion-item">
+                    <h2 class="accordion-header">
+                      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseB<%=curClass.classid%>" aria-expanded="true" aria-controls="collapseB<%=curClass.classid%>"><%=curClass.classname%></button>
+                    </h2>
+                    <div id="collapseB<%=curClass.classid%>" class="accordion-collapse collapse" data-bs-parent="#availableClasses">
+                      <div class="accordion-body">
+                        <div>Date: <%=curClass.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })%></div>
+                        <div>Start Time: <%=((curClass.starttime.substring(0, 2) % 12 == 0) ? 12 : (curClass.starttime.substring(0, 2) % 12)) + ":" + curClass.starttime.substring(3, 5) + (curClass.starttime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
+                        <div>End Time: <%=((curClass.endtime.substring(0, 2) % 12 == 0) ? 12 : (curClass.endtime.substring(0, 2) % 12)) + ":" + curClass.endtime.substring(3, 5) + (curClass.endtime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-danger leave-class" onclick="handleLeaveClass(event)">Leave Class</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+        <script src="js/classesMember.js"></script>
         <% } %>
       </div>
     </div>

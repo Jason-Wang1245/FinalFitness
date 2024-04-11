@@ -16,7 +16,7 @@ const hashPassword = (password) => {
 };
 
 // check if appointment is already booked
-async function isAvailable(appointmentId) {
+async function isAvailableAppointment(appointmentId) {
   const result = await client.query("SELECT COUNT(*) AS count FROM availableAppointments WHERE appointmentId = $1", [appointmentId]);
   return result.rows[0].count === "1";
 }
@@ -53,6 +53,22 @@ async function isRoomTimeConflict(startTime, endTime, date, roomName) {
   return false;
 }
 
+// check if a class is already full
+async function isAvailableClass(classId) {
+  const result = await client.query("SELECT currentCapacity, maxCapacity FROM classes WHERE classId = $1", [classId]);
+  return result.rows[0].currentcapacity < result.rows[0].maxcapacity;
+}
+
+// checks if there is a time conflict in class bookings for the member
+async function isClassTimeConflict(startTime, endTime, date, username){
+  const result = await client.query("SELECT startTime, endTime, date FROM classBookings JOIN classes ON classBookings.classId = classes.classId WHERE classBookings.memberUsername = $1", [username]);
+  for (let i = 0; i < result.rows.length; i++) {
+    if (date === result.rows[i].date.toISOString().slice(0, 10) && ((endTime <= result.rows[i].endtime && endTime > result.rows[i].starttime) || (startTime > result.rows[i].starttime && startTime < result.rows[i].endtime))) return true;
+  }
+
+  return false;
+}
+
 const initialize = (passport) => {
   // authenticating user login
   const authenticateUser = (username, password, done) => {
@@ -82,7 +98,6 @@ const initialize = (passport) => {
       values: [id],
     };
 
-
     // retrieve user data
     client.query(userQuery, (err, result) => {
       if (err) console.log(err);
@@ -90,7 +105,7 @@ const initialize = (passport) => {
   
       if (data.accounttype === "Admin" || data.accounttype === "Member"){
         const getClassesQuery = {
-          text: "SELECT * FROM classes",
+          text: "SELECT * FROM classes ORDER BY date, startTime ASC",
           values: []
         }
 
@@ -141,8 +156,17 @@ const initialize = (passport) => {
                 client.query(getBookedAppointments, (err, result) => {
                   if (err) console.log(err);
                   data.bookedAppointments = result.rows;
+                  const getBookedClasses = {
+                    text: "SELECT classes.className, classes.classId, classes.starttime, classes.endtime, classes.date FROM classBookings JOIN classes ON classBookings.classId = classes.classId WHERE classBookings.memberUsername = $1 ORDER BY classes.date, classes.startTime ASC",
+                    values: [id]
+                  } 
+                  // retrieve classes that the user has booked
+                  client.query(getBookedClasses, (err, result) => {
+                    if (err) console.log(err);
+                    data.bookedClasses = result.rows;
 
-                  return done(null, data);
+                    return done(null, data);
+                  });
                 });
               });
             });
@@ -364,13 +388,22 @@ app.get("/equipment", (req, res) => {
 
 app.get("/classes", (req, res) => {
   if (req.isAuthenticated()) {
-    if (req.user.accounttype === "Admin" || req.user.accounttype === "Member"){
+    if (req.user.accounttype === "Admin"){
       res.render("classes.ejs", {
         username: req.user.username,
         firstName: req.user.firstname,
         lastName: req.user.lastname,
         accountType: req.user.accounttype,
         classes: req.user.classes
+      })
+    } else if (req.user.accounttype === "Member") {
+      res.render("classes.ejs", {
+        username: req.user.username,
+        firstName: req.user.firstname,
+        lastName: req.user.lastname,
+        accountType: req.user.accounttype,
+        classes: req.user.classes,
+        bookedClasses: req.user.bookedClasses
       })
     } else {
       res.redirect("/dashboard");
@@ -689,7 +722,7 @@ app.post("/createAppointment", (req, res) => {
 app.post("/deleteAppointment", (req, res) => {
   const appointmentId = req.body.appointmentId;
 
-  isAvailable(appointmentId).then((available) => {
+  isAvailableAppointment(appointmentId).then((available) => {
     if (available) {
       const deleteAppointmentQuery = {
         text: "DELETE FROM availableAppointments WHERE appointmentId = $1",
@@ -713,7 +746,7 @@ app.post("/bookAppointment", (req, res) => {
   const appointmentId = req.body.appointmentId;
   const username = req.body.username;
 
-  isAvailable(appointmentId).then((available) => {
+  isAvailableAppointment(appointmentId).then((available) => {
     const getAppointmentQuery = {
       text: "SELECT * FROM availableAppointments WHERE appointmentId = $1",
       values: [appointmentId],
@@ -723,28 +756,30 @@ app.post("/bookAppointment", (req, res) => {
       const appointment = result.rows[0];
 
       if (available) {
-        isAppointmentTimeConflict(appointment.starttime, appointment.endtime, appointment.date.toISOString().slice(0, 10), username, "Member").then((isConflict) => {
-          if (isConflict) {
-            const error = new Error("Time conflict.");
-            error.status = 305;
-            res.status(error.status).json({ error: "Time conflict" });
-          } else {
-            const addAppointmentQuery = {
-              text: "INSERT INTO bookedAppointments (appointmentId, appointmentName, trainerUsername, memberUsername, startTime, endTime, date) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-              values: [appointmentId, appointment.appointmentname, appointment.trainerusername, username, appointment.starttime, appointment.endtime, appointment.date],
-            };
-
-            client.query(addAppointmentQuery);
-
-            const deleteAppointmentQuery = {
-              text: "DELETE FROM availableAppointments WHERE appointmentId = $1",
-              values: [appointmentId],
-            };
-
-            client.query(deleteAppointmentQuery);
-
-            res.redirect("/appointments");
-          }
+        isAppointmentTimeConflict(appointment.starttime + ":00", appointment.endtime + ":00", appointment.date.toISOString().slice(0, 10), username, "Member").then((isAppointmentConflict) => {
+          isClassTimeConflict(appointment.starttime + ":00", appointment.endtime + ":00", appointment.date.toISOString().slice(0, 10), username).then(isClassConflict => {
+            if (isAppointmentConflict || isClassConflict) {
+              const error = new Error("Time conflict.");
+              error.status = 305;
+              res.status(error.status).json({ error: "Time conflict" });
+            } else {
+              const addAppointmentQuery = {
+                text: "INSERT INTO bookedAppointments (appointmentId, appointmentName, trainerUsername, memberUsername, startTime, endTime, date) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                values: [appointmentId, appointment.appointmentname, appointment.trainerusername, username, appointment.starttime, appointment.endtime, appointment.date],
+              };
+  
+              client.query(addAppointmentQuery);
+  
+              const deleteAppointmentQuery = {
+                text: "DELETE FROM availableAppointments WHERE appointmentId = $1",
+                values: [appointmentId],
+              };
+  
+              client.query(deleteAppointmentQuery);
+  
+              res.redirect("/appointments");
+            }
+          });
         });
       } else {
         const error = new Error("Appointment is already booked");
@@ -958,6 +993,77 @@ app.post("/deleteClass", (req, res) => {
   }
 
   client.query(deleteClassQuery);
+
+  res.redirect("/classes");
+});
+
+// join a class (checks for time conflict and current class capacity)
+app.post("/joinClass", (req, res) => {
+  const classId = req.body.classId;
+  const username = req.body.username;
+
+  isAvailableClass(classId).then(available => {
+    const getClassQuery = {
+      text: "SELECT * FROM classes WHERE classId = $1",
+      values: [classId]
+    }
+
+    client.query(getClassQuery, (err, result) => {
+      if (err) console.log(err);
+      const foundClass = result.rows[0];
+
+      if (available) {
+        isAppointmentTimeConflict(foundClass.starttime + ":00", foundClass.endtime + ":00", foundClass.date.toISOString().slice(0, 10), username, "Member").then((isAppointmentConflict) => {
+          isClassTimeConflict(foundClass.starttime + ":00", foundClass.endtime + ":00", foundClass.date.toISOString().slice(0, 10), username).then(isClassConflict => {
+            if (isAppointmentConflict || isClassConflict) {
+              const error = new Error("Time conflict.");
+              error.status = 305;
+              res.status(error.status).json({ error: "Time conflict" });
+            } else {
+              const createClassBookingQuery = {
+                text: "INSERT INTO classBookings (classId, memberUsername) VALUES ($1, $2)",
+                values: [classId, username]
+              }
+
+              client.query(createClassBookingQuery);
+
+              const updateClassCapacityQuery = {
+                text: "UPDATE classes SET currentCapacity = $1 WHERE classId = $2",
+                values: [foundClass.currentcapacity + 1, classId]
+              }
+
+              client.query(updateClassCapacityQuery);
+
+              res.redirect("/classes");
+            }
+          });
+        });
+      } else {
+        const error = new Error("Class is already full");
+        error.status = 304;
+        res.status(error.status).json({ error: "Class is already full" });
+      }
+    });
+  })
+});
+// Deletes class booking for user (also updates classes capacity)
+app.post("/leaveClass", (req, res) => {
+  const classId = req.body.classId;
+  const username = req.body.username;
+
+  const deleteClassBookingQuery = {
+    text: "DELETE FROM classBookings WHERE classId = $1 AND memberUsername = $2",
+    values: [classId, username]
+  }
+
+  client.query(deleteClassBookingQuery);
+
+  const updateClassesQuery = {
+    text: "UPDATE classes SET currentCapacity = currentCapacity - 1 WHERE classId = $1",
+    values: [classId]
+  }
+
+  client.query(updateClassesQuery);
 
   res.redirect("/classes");
 });

@@ -99,7 +99,7 @@ CREATE TABLE classes (
 	date DATE NOT NULL
 );
 
-CREATE TABLE classBooking (
+CREATE TABLE classBookings (
 	classId BIGINT,
 	memberUsername VARCHAR(20),
 	FOREIGN KEY (memberUsername) 
@@ -108,12 +108,3 @@ CREATE TABLE classBooking (
 		REFERENCES classes(classId),
 	PRIMARY KEY (classId, memberUsername)
 );
-
-DROP TABLE bookedAppointments;
-DROP TABLE availableAppointments;
-
-DELETE FROM availableAppointments;
-DELETE FROM bookedAppointments;
-DELETE FROM users;
-
-SELECT startTime, endTime, date FROM bookedAppointments WHERE trainerUsername = 'a'
