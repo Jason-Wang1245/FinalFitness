@@ -69,7 +69,7 @@
                 </div>
                 <div class="mb-3">
                   <label for="appointmentEndingTime" class="form-label">Appointment Ending Time</label>
-                  <input type="time" class="form-control" id="appointmentEndingTime" name="appointmentEndingTime"/>
+                  <input type="time" class="form-control" id="appointmentEndingTime" name="appointmentEndingTime" />
                 </div>
                 <p id="appointmentCreateError" class="text-danger hidden"></p>
               </div>
@@ -154,7 +154,10 @@
                       <div>End Time: <%=((curAppointment.endtime.substring(0, 2) % 12 == 0) ? 12 : (curAppointment.endtime.substring(0, 2) % 12)) + ":" + curAppointment.endtime.substring(3, 5) + (curAppointment.endtime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
                       <div>Trainer Name: <%=curAppointment.firstname%> <%=curAppointment.lastname%></div>
                       <div class="modal-footer">
+                        <% if (!curAppointment.paid) { %>
+                        <button type="button" class="btn btn-success pay" onclick="handlePayAppointment(event)" style="margin-right: 0.5rem">Pay for Appointment</button>
                         <button type="button" class="btn btn-danger delete-appointment" onclick="handleCancelAppointment(event)">Cancel Appointment</button>
+                        <% } %>
                       </div>
                     </div>
                   </div>
@@ -165,6 +168,36 @@
           </div>
         </div>
         <script src="js/appointmentMember.js"></script>
+        <% } %> <% if (accountType === "Admin") { %>
+        <div class="col-sm-4">
+          <div class="card">
+            <div class="card-body">
+              <h2 class="card-title">Booked Appointments</h2>
+              <div class="accordion" id="appointments">
+                <% for (let i = 0; i < appointments.length; i++) { const curAppointment = appointments[i]%>
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%=curAppointment.appointmentid%>" aria-expanded="true" aria-controls="collapse<%=curAppointment.appointmentid%>"><%=curAppointment.appointmentname%></button>
+                  </h2>
+                  <div id="collapse<%=curAppointment.appointmentid%>" class="accordion-collapse collapse" data-bs-parent="#appointments">
+                    <div class="accordion-body">
+                      <div>Date: <%=curAppointment.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })%></div>
+                      <div>Start Time: <%=((curAppointment.starttime.substring(0, 2) % 12 == 0) ? 12 : (curAppointment.starttime.substring(0, 2) % 12)) + ":" + curAppointment.starttime.substring(3, 5) + (curAppointment.starttime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
+                      <div>End Time: <%=((curAppointment.endtime.substring(0, 2) % 12 == 0) ? 12 : (curAppointment.endtime.substring(0, 2) % 12)) + ":" + curAppointment.endtime.substring(3, 5) + (curAppointment.endtime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
+                      <div>Trainer Username: <%=curAppointment.trainerusername%></div>
+                      <div>Member Username: <%=curAppointment.memberusername%></div>
+                      <div>Paid: <%=curAppointment.paid ? "Paid" : "Not Paid"%></div>
+                      <% if (!curAppointment.paid && ((new Date()) > curAppointment.date)) { %>
+                      <div class="text-danger">Payment is Overdue.</div>
+                      <% } %>
+                    </div>
+                  </div>
+                </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
         <% } %>
       </div>
     </div>

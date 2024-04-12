@@ -54,6 +54,7 @@ CREATE TABLE bookedAppointments (
 	memberUsername VARCHAR (20),
 	startTime TIME NOT NULL,
 	endTime TIME NOT NULL,
+	paid BOOLEAN NOT NULL DEFAULT FALSE,
 	date DATE NOT NULL,
 	FOREIGN KEY (trainerUsername) 
 		REFERENCES users(username),
@@ -102,9 +103,12 @@ CREATE TABLE classes (
 CREATE TABLE classBookings (
 	classId BIGINT,
 	memberUsername VARCHAR(20),
+	paid BOOLEAN NOT NULL DEFAULT FALSE,
 	FOREIGN KEY (memberUsername) 
 		REFERENCES users(username),
 	FOREIGN KEY (classId) 
 		REFERENCES classes(classId),
 	PRIMARY KEY (classId, memberUsername)
 );
+
+INSERT INTO users (username, password, accountType, firstName, lastName) VALUES ('a', 'ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb', 'Admin', 'The', 'Admin')

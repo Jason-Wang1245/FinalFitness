@@ -149,7 +149,7 @@ const initialize = (passport) => {
                 if (err) console.log(err);
                 data.availableAppointments = result.rows;
                 const getBookedAppointments = {
-                  text: "SELECT date, startTime, endTime, appointmentName, firstName, lastName, appointmentId FROM bookedAppointments, users WHERE bookedAppointments.trainerUsername = users.username AND bookedAppointments.memberUsername = $1 ORDER BY date, startTime ASC",
+                  text: "SELECT date, startTime, endTime, appointmentName, firstName, lastName, paid, appointmentId FROM bookedAppointments, users WHERE bookedAppointments.trainerUsername = users.username AND bookedAppointments.memberUsername = $1 ORDER BY date, startTime ASC",
                   values: [id],
                 };
                 // retrieve appointments that the user has booked
@@ -157,7 +157,7 @@ const initialize = (passport) => {
                   if (err) console.log(err);
                   data.bookedAppointments = result.rows;
                   const getBookedClasses = {
-                    text: "SELECT classes.className, classes.classId, classes.starttime, classes.endtime, classes.date FROM classBookings JOIN classes ON classBookings.classId = classes.classId WHERE classBookings.memberUsername = $1 ORDER BY classes.date, classes.startTime ASC",
+                    text: "SELECT classes.className, classes.classId, classes.starttime, classes.endtime, classes.date, classBookings.paid FROM classBookings JOIN classes ON classBookings.classId = classes.classId WHERE classBookings.memberUsername = $1 ORDER BY classes.date, classes.startTime ASC",
                     values: [id]
                   } 
                   // retrieve classes that the user has booked
@@ -253,10 +253,27 @@ const initialize = (passport) => {
               client.query(getEquipmentQuery, (err, result) => {
                 if (err) console.log(err);
                 data.equipment = result.rows;
+                const getAppointments = {
+                  text: "SELECT * FROM bookedAppointments",
+                  values: []
+                }
+                // retrieve all appointment bookings
+                client.query(getAppointments, (err, result) => {
+                  if (err) console.log(err);
+                  data.appointments = result.rows;
+                  const getClassBookings = {
+                    text: "SELECT * FROM classBookings, classes WHERE classBookings.classId = classes.classId",
+                    values: []
+                  }
+                  // retrieve all class bookings
+                  client.query(getClassBookings, (err, result) => {
+                    if (err) console.log(err);
+                    data.bookedClasses = result.rows;
 
-                return done(null, data);
-              })
-              
+                    return done(null, data);
+                  });
+                });
+              });
             });
           });
         });
@@ -330,7 +347,7 @@ app.get("/appointments", (req, res) => {
         availableAppointments: req.user.availableAppointments,
         bookedAppointments: req.user.bookedAppointments,
       });
-    } else {
+    } else if (req.user.accounttype === "Trainer") {
       res.render("appointments.ejs", {
         username: req.user.username,
         firstName: req.user.firstname,
@@ -338,6 +355,14 @@ app.get("/appointments", (req, res) => {
         accountType: req.user.accounttype,
         myAvailableAppointments: req.user.myAvailableAppointments,
         bookedAppointments: req.user.bookedAppointments,
+      });
+    } else if (req.user.accounttype === "Admin") {
+      res.render("appointments.ejs", {
+        username: req.user.username,
+        firstName: req.user.firstname,
+        lastName: req.user.lastname,
+        accountType: req.user.accounttype,
+        appointments: req.user.appointments
       });
     }
   } else res.redirect("/signin");
@@ -394,7 +419,8 @@ app.get("/classes", (req, res) => {
         firstName: req.user.firstname,
         lastName: req.user.lastname,
         accountType: req.user.accounttype,
-        classes: req.user.classes
+        classes: req.user.classes,
+        bookedClasses: req.user.bookedClasses
       })
     } else if (req.user.accounttype === "Member") {
       res.render("classes.ejs", {
@@ -821,6 +847,18 @@ app.post("/cancelAppointment", (req, res) => {
   res.redirect("/appointments");
 });
 
+app.post("/payAppointment", (req, res) => {
+  const appointmentId = req.body.appointmentId;
+  const updatePaymentQuery = {
+    text: "UPDATE bookedAppointments SET paid = TRUE WHERE appointmentId = $1",
+    values: [appointmentId]
+  }
+
+  client.query(updatePaymentQuery);
+
+  res.redirect("/appointments")
+});
+
 // ROOMS
 // create room
 app.post("/createRoom", (req, res) => {
@@ -1066,4 +1104,18 @@ app.post("/leaveClass", (req, res) => {
   client.query(updateClassesQuery);
 
   res.redirect("/classes");
+});
+
+app.post("/payClass", (req, res) => {
+  const classId = req.body.classId;
+  const username = req.body.username;
+
+  const payClassQuery = {
+    text: "UPDATE classBookings SET paid = TRUE WHERE classId = $1 AND memberUsername = $2",
+    values: [classId, username]
+  }
+
+  client.query(payClassQuery);
+
+  res.redirect("/classes")
 });

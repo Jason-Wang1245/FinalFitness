@@ -49,6 +49,35 @@
           </div>
         </div>
 
+        <div class="col-sm-4">
+          <div class="card">
+            <div class="card-body">
+              <h2 class="card-title">Booked Classes</h2>
+              <div class="accordion" id="bookedClasses">
+                <% for (let i = 0; i < bookedClasses.length; i++) { const curClass = bookedClasses[i]%>
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseB<%=curClass.classid%>" aria-expanded="true" aria-controls="collapseB<%=curClass.classid%>"><%=curClass.classname%></button>
+                  </h2>
+                  <div id="collapseB<%=curClass.classid%>" class="accordion-collapse collapse" data-bs-parent="#bookedClasses">
+                    <div class="accordion-body">
+                      <div>Date: <%=curClass.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })%></div>
+                      <div>Start Time: <%=((curClass.starttime.substring(0, 2) % 12 == 0) ? 12 : (curClass.starttime.substring(0, 2) % 12)) + ":" + curClass.starttime.substring(3, 5) + (curClass.starttime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
+                      <div>End Time: <%=((curClass.endtime.substring(0, 2) % 12 == 0) ? 12 : (curClass.endtime.substring(0, 2) % 12)) + ":" + curClass.endtime.substring(3, 5) + (curClass.endtime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
+                      <div>Member Username: <%=curClass.memberusername%></div>
+                      <div>Paid: <%=curClass.paid ? "Paid" : "Not Paid"%></div>
+                      <% if (!curClass.paid && ((new Date()) > curClass.date)) { %>
+                        <div class="text-danger">Payment is Overdue.</div>
+                      <% } %>
+                    </div>
+                  </div>
+                </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="modal fade" id="createClass" tabindex="-1" aria-labelledby="createClass" aria-hidden="true">
           <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -125,21 +154,24 @@
               <h2 class="card-title">Booked Classes</h2>
               <div class="accordion" id="bookedClasses">
                 <% for (let i = 0; i < bookedClasses.length; i++) { %> <% const curClass = bookedClasses[i]%>
-                  <div class="accordion-item">
-                    <h2 class="accordion-header">
-                      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseB<%=curClass.classid%>" aria-expanded="true" aria-controls="collapseB<%=curClass.classid%>"><%=curClass.classname%></button>
-                    </h2>
-                    <div id="collapseB<%=curClass.classid%>" class="accordion-collapse collapse" data-bs-parent="#availableClasses">
-                      <div class="accordion-body">
-                        <div>Date: <%=curClass.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })%></div>
-                        <div>Start Time: <%=((curClass.starttime.substring(0, 2) % 12 == 0) ? 12 : (curClass.starttime.substring(0, 2) % 12)) + ":" + curClass.starttime.substring(3, 5) + (curClass.starttime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
-                        <div>End Time: <%=((curClass.endtime.substring(0, 2) % 12 == 0) ? 12 : (curClass.endtime.substring(0, 2) % 12)) + ":" + curClass.endtime.substring(3, 5) + (curClass.endtime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
-                        <div class="modal-footer">
-                          <button type="button" class="btn btn-danger leave-class" onclick="handleLeaveClass(event)">Leave Class</button>
-                        </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseB<%=curClass.classid%>" aria-expanded="true" aria-controls="collapseB<%=curClass.classid%>"><%=curClass.classname%></button>
+                  </h2>
+                  <div id="collapseB<%=curClass.classid%>" class="accordion-collapse collapse" data-bs-parent="#availableClasses">
+                    <div class="accordion-body">
+                      <div>Date: <%=curClass.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })%></div>
+                      <div>Start Time: <%=((curClass.starttime.substring(0, 2) % 12 == 0) ? 12 : (curClass.starttime.substring(0, 2) % 12)) + ":" + curClass.starttime.substring(3, 5) + (curClass.starttime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
+                      <div>End Time: <%=((curClass.endtime.substring(0, 2) % 12 == 0) ? 12 : (curClass.endtime.substring(0, 2) % 12)) + ":" + curClass.endtime.substring(3, 5) + (curClass.endtime.substring(0, 2) >= 12 ? " PM" : " AM")%></div>
+                      <div class="modal-footer">
+                        <% if (!curClass.paid) { %>
+                        <button type="button" class="btn btn-success pay" onclick="handlePayClass(event)" style="margin-right: 0.5rem">Pay for Class</button>
+                        <button type="button" class="btn btn-danger leave-class" onclick="handleLeaveClass(event)">Leave Class</button>
+                        <% } %>
                       </div>
                     </div>
                   </div>
+                </div>
                 <% } %>
               </div>
             </div>

@@ -35,3 +35,16 @@ const handleCancelAppointment = (event) => {
     window.location.reload();
   });
 };
+
+const handlePayAppointment = event => {
+  const appointmentId = event.target.parentNode.parentNode.parentNode.id.substr(8);
+  fetch("/payAppointment", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ appointmentId: appointmentId }),
+  }).then((response) => {
+    window.location.reload();
+  });
+}

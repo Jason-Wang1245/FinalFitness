@@ -32,3 +32,16 @@ const handleLeaveClass = (event) => {
     window.location.reload();
   });
 };
+
+const handlePayClass = event => {
+  const classId = event.target.parentNode.parentNode.parentNode.id.substr(9);
+  fetch("/payClass", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ classId: classId, username: username }),
+  }).then((response) => {
+    window.location.reload();
+  });
+}
