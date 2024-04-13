@@ -23,3 +23,5 @@ database.js: Setting up connection to Postgres database using pg npm package
 views: Client-side code
 
 public: additional code for client-sided code
+
+Side Note: Since my passwords stored in the database are hashed, the passwords in the DML are hashed values. The passwords for all of the DML example accounts are the same as the username
