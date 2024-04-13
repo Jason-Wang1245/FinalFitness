@@ -39,8 +39,8 @@ VALUES (0, 'LIBRARY', 'trainer1', '10:00', '11:00', '2024-04-15'),
 
 INSERT INTO equipment (equipmentId, equipmentName, equipmentQuantity, currentDurability, maximumDurability)
 VALUES (0, 'Dumbells', 10, 100, 1000),
-(1, 'Barbells', 10, 0, 1000),
-(2, 'Jumping ropes', 100, 0, 10);
+(1, 'Barbells', 10, 1000, 1000),
+(2, 'Jumping ropes', 100, 10, 10);
 
 INSERT INTO classes (classId, className, currentCapacity, maxCapacity, startTime, endTime, date)
 VALUES (0, 'Full class', 10, 10, '10:00', '11:00', '2024-04-15'),
