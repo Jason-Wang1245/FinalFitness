@@ -17,26 +17,24 @@ const hashPassword = (password) => {
 
 // check if appointment is already booked
 async function isAvailableAppointment(appointmentId) {
-  const result = await client.query("SELECT COUNT(*) AS count FROM availableAppointments WHERE appointmentId = $1", [appointmentId]);
-  return result.rows[0].count === "1";
+  const result = await client.query("SELECT COUNT(*) AS count FROM appointments NATURAL INNER JOIN bookedAppointments WHERE appointmentId = $1", [appointmentId]);
+  return result.rows[0].count !== "1";
 }
 
 // check if there is a time conflict with the given time of the given user
 async function isAppointmentTimeConflict(startTime, endTime, date, username, accountType) {
   if (accountType === "Trainer") {
-    const result = await client.query("SELECT startTime, endTime, date FROM availableAppointments WHERE trainerUsername = $1", [username]);
+    const result = await client.query("SELECT startTime, endTime, date FROM appointments WHERE trainerUsername = $1", [username]);
 
     for (let i = 0; i < result.rows.length; i++) {
       if (date === result.rows[i].date.toISOString().slice(0, 10) && ((endTime <= result.rows[i].endtime && endTime > result.rows[i].starttime) || (startTime > result.rows[i].starttime && startTime < result.rows[i].endtime))) return true;
     }
-  }
+  } else if (accountType === "Member"){
+    const result = await client.query("SELECT startTime, endTime, date FROM bookedAppointments NATURAL INNER JOIN appointments WHERE memberUsername = $1", [username]);
 
-  let result;
-  if (accountType === "Member") result = await client.query("SELECT startTime, endTime, date FROM bookedAppointments WHERE memberUsername = $1", [username]);
-  else result = await client.query("SELECT startTime, endTime, date FROM bookedAppointments WHERE trainerUsername = $1", [username]);
-
-  for (let i = 0; i < result.rows.length; i++) {
-    if (date === result.rows[i].date.toISOString().slice(0, 10) && ((endTime <= result.rows[i].endtime && endTime > result.rows[i].starttime) || (startTime > result.rows[i].starttime && startTime < result.rows[i].endtime))) return true;
+    for (let i = 0; i < result.rows.length; i++) {
+      if (date === result.rows[i].date.toISOString().slice(0, 10) && ((endTime <= result.rows[i].endtime && endTime > result.rows[i].starttime) || (startTime > result.rows[i].starttime && startTime < result.rows[i].endtime))) return true;
+    }
   }
 
   return false;
@@ -141,15 +139,15 @@ const initialize = (passport) => {
               if (err) console.log(err);
               data.fitnessRoutines = result.rows;
               const getAvailableAppointments = {
-                text: "SELECT date, startTime, endTime, appointmentName, firstName, lastName, appointmentId FROM availableAppointments, users WHERE availableAppointments.trainerUsername = users.username ORDER BY date, startTime ASC",
-                values: [],
+                text: "SELECT date, startTime, endTime, appointmentName, firstName, lastName, appointments.appointmentId FROM (appointments LEFT OUTER JOIN bookedAppointments ON appointments.appointmentId = bookedAppointments.appointmentId), users WHERE users.username = appointments.trainerusername AND (bookedAppointments.memberusername != $1 OR bookedAppointments.memberusername IS NULL) ORDER BY date, startTime ASC",
+                values: [id],
               };
               // retrieve available appointments
               client.query(getAvailableAppointments, (err, result) => {
                 if (err) console.log(err);
                 data.availableAppointments = result.rows;
                 const getBookedAppointments = {
-                  text: "SELECT date, startTime, endTime, appointmentName, firstName, lastName, paid, appointmentId FROM bookedAppointments, users WHERE bookedAppointments.trainerUsername = users.username AND bookedAppointments.memberUsername = $1 ORDER BY date, startTime ASC",
+                  text: "SELECT date, startTime, endTime, appointmentName, firstName, lastName, paid, appointments.appointmentId FROM appointments, bookedAppointments, users WHERE appointments.appointmentId = bookedAppointments.appointmentId AND appointments.trainerUsername = users.username AND bookedAppointments.memberUsername = $1 ORDER BY date, startTime ASC",
                   values: [id],
                 };
                 // retrieve appointments that the user has booked
@@ -182,7 +180,7 @@ const initialize = (passport) => {
           if (err) console.log(err);
           data.membersList = result.rows;
           const getTrainerAvailableAppointments = {
-            text: "SELECT * FROM availableAppointments WHERE trainerUsername = $1 ORDER BY date, startTime ASC",
+            text: "SELECT * FROM appointments LEFT OUTER JOIN bookedAppointments ON appointments.appointmentId = bookedAppointments.appointmentId WHERE trainerusername = $1 AND memberusername IS NULL ORDER BY date, startTime ASC",
             values: [id],
           };
           // retrieve this trainers available appointments
@@ -190,7 +188,7 @@ const initialize = (passport) => {
             if (err) console.log(err);
             data.myAvailableAppointments = result.rows;
             const getBookedAppointments = {
-              text: "SELECT date, startTime, endTime, appointmentName, firstName, lastName, appointmentId FROM bookedAppointments JOIN users ON bookedAppointments.memberUsername = users.username WHERE bookedAppointments.trainerUsername = $1 ORDER BY date, startTime ASC",
+              text: "SELECT date, startTime, endTime, appointmentName, firstName, lastName, appointments.appointmentId FROM appointments, bookedAppointments, users WHERE appointments.appointmentId = bookedAppointments.appointmentId AND bookedAppointments.memberUsername = users.username AND appointments.trainerUsername = $1 ORDER BY date, startTime ASC",
               values: [id],
             };
             // get all the appointments booked under this trainer
@@ -254,7 +252,7 @@ const initialize = (passport) => {
                 if (err) console.log(err);
                 data.equipment = result.rows;
                 const getAppointments = {
-                  text: "SELECT * FROM bookedAppointments",
+                  text: "SELECT * FROM appointments NATURAL INNER JOIN bookedAppointments ORDER BY date, startTime ASC",
                   values: []
                 }
                 // retrieve all appointment bookings
@@ -262,7 +260,7 @@ const initialize = (passport) => {
                   if (err) console.log(err);
                   data.appointments = result.rows;
                   const getClassBookings = {
-                    text: "SELECT * FROM classBookings, classes WHERE classBookings.classId = classes.classId",
+                    text: "SELECT * FROM classBookings, classes WHERE classBookings.classId = classes.classId ORDER BY date, startTime ASC",
                     values: []
                   }
                   // retrieve all class bookings
@@ -733,7 +731,7 @@ app.post("/createAppointment", (req, res) => {
       res.status(error.status).json({ error: "Time conflict" });
     } else {
       const createAppointmentQuery = {
-        text: "INSERT INTO availableAppointments (appointmentId, appointmentName, trainerUsername, startTime, endTime, date) VALUES ($1, $2, $3, $4, $5, $6)",
+        text: "INSERT INTO appointments (appointmentId, appointmentName, trainerUsername, startTime, endTime, date) VALUES ($1, $2, $3, $4, $5, $6)",
         values: [newUniqueId, title, trainer, startingTime, endingTime, date],
       };
 
@@ -751,7 +749,7 @@ app.post("/deleteAppointment", (req, res) => {
   isAvailableAppointment(appointmentId).then((available) => {
     if (available) {
       const deleteAppointmentQuery = {
-        text: "DELETE FROM availableAppointments WHERE appointmentId = $1",
+        text: "DELETE FROM appointments WHERE appointmentId = $1",
         values: [appointmentId],
       };
 
@@ -774,7 +772,7 @@ app.post("/bookAppointment", (req, res) => {
 
   isAvailableAppointment(appointmentId).then((available) => {
     const getAppointmentQuery = {
-      text: "SELECT * FROM availableAppointments WHERE appointmentId = $1",
+      text: "SELECT * FROM appointments WHERE appointmentId = $1",
       values: [appointmentId],
     };
     client.query(getAppointmentQuery, (err, result) => {
@@ -790,18 +788,11 @@ app.post("/bookAppointment", (req, res) => {
               res.status(error.status).json({ error: "Time conflict" });
             } else {
               const addAppointmentQuery = {
-                text: "INSERT INTO bookedAppointments (appointmentId, appointmentName, trainerUsername, memberUsername, startTime, endTime, date) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                values: [appointmentId, appointment.appointmentname, appointment.trainerusername, username, appointment.starttime, appointment.endtime, appointment.date],
+                text: "INSERT INTO bookedAppointments (appointmentId, memberUsername) VALUES ($1, $2)",
+                values: [appointmentId, username],
               };
   
               client.query(addAppointmentQuery);
-  
-              const deleteAppointmentQuery = {
-                text: "DELETE FROM availableAppointments WHERE appointmentId = $1",
-                values: [appointmentId],
-              };
-  
-              client.query(deleteAppointmentQuery);
   
               res.redirect("/appointments");
             }
@@ -819,23 +810,6 @@ app.post("/bookAppointment", (req, res) => {
 // cancel appointment (move appointment from bookedAppointments to availableAppointments)
 app.post("/cancelAppointment", (req, res) => {
   const appointmentId = req.body.appointmentId;
-
-  const getAppointmentQuery = {
-    text: "SELECT * FROM bookedAppointments WHERE appointmentId = $1",
-    values: [appointmentId],
-  };
-
-  client.query(getAppointmentQuery, (err, result) => {
-    if (err) console.log(err);
-    const appointment = result.rows[0];
-
-    const addAppointmentQuery = {
-      text: "INSERT INTO availableAppointments (appointmentId, appointmentName, trainerUsername, startTime, endTime, date) VALUES ($1, $2, $3, $4, $5, $6)",
-      values: [appointment.appointmentid, appointment.appointmentname, appointment.trainerusername, appointment.starttime, appointment.endtime, appointment.date],
-    };
-
-    client.query(addAppointmentQuery);
-  });
 
   const deleteAppointmentQuery = {
     text: "DELETE FROM bookedAppointments WHERE appointmentId = $1",

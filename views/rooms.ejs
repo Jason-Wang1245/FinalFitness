@@ -30,9 +30,9 @@
                 <% for (let i = 0; i < rooms.length; i++) { %> <% const curRoom = rooms[i]%>
                 <div class="accordion-item">
                   <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%=curRoom.roomname%>" aria-expanded="true" aria-controls="collapse<%=curRoom.roomname%>"><%=curRoom.roomname%></button>
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<%=curRoom.roomname.replace(/\s/g, "")%>" aria-expanded="true" aria-controls="collapse<%=curRoom.roomname.replace(/\s/g, "")%>"><%=curRoom.roomname%></button>
                   </h2>
-                  <div id="collapse<%=curRoom.roomname%>" class="accordion-collapse collapse" data-bs-parent="#rooms">
+                  <div id="collapse<%=curRoom.roomname.replace(/\s/g, "")%>" class="accordion-collapse collapse" data-bs-parent="#rooms">
                     <div class="accordion-body">
                       <div>Room Capacity: <%=curRoom.capacity%></div>
                       <div class="modal-footer">
