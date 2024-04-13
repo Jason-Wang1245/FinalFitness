@@ -30,11 +30,11 @@ VALUES (0, 'member1'),
 
 INSERT INTO rooms (roomName, capacity)
 VALUES ('HERZBERG', 10),
-('SOUTHAM HALL', 100),
-('LIBRARY 234C', 2);
+('SOUTHAM', 100),
+('LIBRARY', 2);
 
 INSERT INTO roomBookings (bookingId, roomName, trainerUsername, startTime, endTime, date)
-VALUES (0, 'LIBRARY 234C', 'trainer1', '10:00', '11:00', '2024-04-15'),
+VALUES (0, 'LIBRARY', 'trainer1', '10:00', '11:00', '2024-04-15'),
 (1, 'HERZBERG', 'trainer2', '10:00', '11:00', '2024-04-15');
 
 INSERT INTO equipment (equipmentId, equipmentName, equipmentQuantity, currentDurability, maximumDurability)
