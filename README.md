@@ -1,5 +1,6 @@
-Name: Jason Wang
-Student Number: 101256080
+Name: Jason Wang,
+Student Number: 101256080,
+Video Link: https://youtu.be/oR1Mlc8WdF4
 
 Project Type: Web application
 
