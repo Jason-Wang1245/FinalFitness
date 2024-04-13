@@ -14,6 +14,7 @@ Instructions for Postgres: Must be named `FinalFitness`. Update according Postgr
 All Postgres related SQL statements are in app.js
 
 Directories List:
+
 app.js: Express server
 
 database.js: Setting up connection to Postgres database using pg npm package 
